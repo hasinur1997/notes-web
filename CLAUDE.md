@@ -118,6 +118,7 @@ src/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
 │   └── Pager, AuthGuard, NoteForm, UserForm, ...
 ├── context/AuthContext.jsx
+├── hooks/                        # reusable stateful logic (useNotes, usePagination, ...)
 └── lib/api.js, lib/utils.js
 ```
 
@@ -148,7 +149,84 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ---
 
-## 5. Workflow for the Agent
+## 5. Coding Rules
+
+Every coding agent and contributor follows these rules for every change. If a rule conflicts with Section 2 (Hard Rules), Section 2 wins.
+
+### 5.1 Design (SOLID, applied to React + Next.js)
+
+- **Single responsibility.** One reason to change per module:
+  - `app/**/page.jsx` compose a page: read URL state, call a hook, render components.
+  - `components/` render UI from props and raise events. They do not call the API directly.
+  - `hooks/` hold reusable stateful logic (fetching a list, submitting a form, pagination).
+  - `lib/api.js` is the only place that talks to the network.
+  - `context/AuthContext.jsx` owns auth state only.
+- **Open/closed.** Extend components through props and composition (`children`, render props), not by adding special cases inside them.
+- **Liskov substitution.** Components with the same role share the same props contract (for example, every form takes `initialValues`, `onSubmit`, `submitting`).
+- **Interface segregation.** Keep props small and focused. Pass what a component needs, not whole objects "just in case".
+- **Dependency inversion.** Pages depend on hooks and `lib/api.js` functions, not on `fetch`, `localStorage` or URLs directly.
+- Do not add abstractions until at least two real callers need them.
+
+### 5.2 Security (mandatory for every feature)
+
+The API enforces security; the client must never weaken it:
+
+- All requests go through `lib/api.js`. Never call `fetch` directly or build API URLs by hand in components.
+- Never render untrusted content as HTML. No `dangerouslySetInnerHTML`. Rely on React's escaping.
+- Only follow internal redirect targets (paths starting with a single `/`). Never redirect to a URL taken from the query string without checking it.
+- Never log tokens or user data to the console. Never put tokens in URLs.
+- Clear the token and all cached user data on logout and on any 401.
+- Only `NEXT_PUBLIC_*` variables reach the browser; never put secrets in them.
+- Route guards are UX only (Section 2): hide what a user cannot do, but always let the API decide.
+- Ask before adding a dependency; run `npm audit` after adding one and resolve high or critical findings.
+
+### 5.3 Performance
+
+- Fetch only what the page shows, always with pagination.
+- Avoid duplicate requests: one fetch per page/query change, cancel or ignore stale responses (`AbortController`).
+- Avoid unnecessary re-renders: stable keys from `_id`, no inline object/array props in hot lists, `useMemo` / `useCallback` only where profiling or obvious cost justifies it.
+- Keep client bundles small: import only the shadcn components a page uses; no large libraries for small tasks.
+
+### 5.4 Readability and structure
+
+- Function components and hooks only. `const` by default, `async/await`, no `var`.
+- Small components with one job. A component longer than ~150 lines, or a function longer than ~40 lines, should be split.
+- Descriptive names: components `PascalCase` (`NoteForm`), hooks `useCamelCase` (`useNotes`), handlers `handleX` (`handleDelete`), booleans read as questions (`isLoading`, `canEdit`).
+- File names: `PascalCase.jsx` for components, `camelCase.js` for hooks and libraries.
+- No magic numbers or strings: name them as constants.
+- No dead code, commented-out code, unused imports or stray `console.log` in commits.
+- Reuse before writing: check `components/`, `hooks/` and `lib/` for an existing piece first.
+
+### 5.5 Comments and documentation
+
+- **Every exported component, hook and function has a JSDoc comment** with a one-sentence summary, `@param` for props/arguments, and `@returns`.
+- Non-exported helpers get at least a one-line comment saying what they do.
+- Inline comments explain **why**, not what (for example, why the token is read inside `useEffect`).
+- Keep comments accurate: update or delete them when the code changes.
+
+```jsx
+/**
+ * Form for creating or editing a note.
+ *
+ * @param {object} props
+ * @param {{ title: string, content: string }} props.initialValues - Values to start with.
+ * @param {(values: { title: string, content: string }) => Promise<void>} props.onSubmit - Called with the form values.
+ * @param {boolean} props.submitting - Disables the form while a request is in flight.
+ * @returns {JSX.Element}
+ */
+export function NoteForm({ initialValues, onSubmit, submitting }) { ... }
+```
+
+### 5.6 Testability
+
+- Keep logic out of JSX: put data shaping, validation helpers and API calls in plain functions or hooks so they can be tested without rendering a page.
+- Components receive data and callbacks through props so they can be rendered in isolation.
+- Every page handles and can be checked in its loading, empty, error and success states.
+- The test tooling (runner and libraries) is not chosen yet. Ask before adding it.
+
+---
+
+## 6. Workflow for the Agent
 
 1. **Read before writing.** Check existing pages, components and `lib/api.js` before changing anything.
 2. **Work in small steps.** One page/feature per change. Make one commit per feature with a conventional message (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
@@ -158,18 +236,20 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ---
 
-## 6. Definition of Done
+## 7. Definition of Done
 
 A frontend page is done when:
 
 - [ ] It calls the API through `lib/api.js` only
 - [ ] Loading, empty and error states are handled
 - [ ] Mutations show a toast; deletes ask for confirmation
+- [ ] The Section 5.2 security rules are followed
+- [ ] Every new exported component, hook and function has a JSDoc comment
 - [ ] `npm run build` passes
 
 ---
 
-## 7. Never Do
+## 8. Never Do
 
 - Call `fetch` directly instead of going through `lib/api.js`
 - Read `localStorage` outside `useEffect`

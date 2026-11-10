@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/format";
 import { canOptimizeImage, resolveImageUrl } from "@/lib/imageUrl";
 import { Markdown } from "@/lib/markdown";
 import { noteColorClass } from "@/lib/noteColors";
+import { highlightText } from "@/lib/search";
 
 /**
  * One note in the grid: images, title, formatted text, labels, reminder, people it is shared
@@ -18,9 +19,10 @@ import { noteColorClass } from "@/lib/noteColors";
  * @param {(note: object) => void} props.onOpen - Opens the note in the editor.
  * @param {(note: object) => void} props.onTogglePin - Pins or unpins the note.
  * @param {string} [props.currentUserId] - The signed-in user, left out of the "shared with" avatars.
+ * @param {RegExp | null} [props.highlight] - Search words to mark in the title and text.
  * @returns {JSX.Element}
  */
-export function NoteCard({ note, onOpen, onTogglePin, currentUserId }) {
+export function NoteCard({ note, onOpen, onTogglePin, currentUserId, highlight = null }) {
   const [cover, ...moreImages] = note.images ?? [];
   const coverUrl = cover ? resolveImageUrl(cover.url) : "";
   // Who else is on the note: for the owner, the collaborators; for a collaborator, the owner and the others.
@@ -58,12 +60,12 @@ export function NoteCard({ note, onOpen, onTogglePin, currentUserId }) {
             onClick={() => onOpen(note)}
             className="text-left outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-3 focus-visible:after:ring-focus"
           >
-            {note.title}
+            {highlightText(note.title, highlight)}
           </button>
         </h3>
 
         {note.content && (
-          <Markdown text={note.content} className="mt-[7px] line-clamp-[12] text-[15px] leading-[22px] break-words" />
+          <Markdown text={note.content} highlight={highlight} className="mt-[7px] line-clamp-[12] text-[15px] leading-[22px] break-words" />
         )}
 
         {note.labels.length > 0 && (

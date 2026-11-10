@@ -59,7 +59,7 @@
 | PATCH | `/api/users/me` | Auth — only `name`, `interests` |
 | PATCH | `/api/users/me/settings` | Auth — `{ notesPagination?: "pages" \| "infinite", notesPerPage?: 12 \| 24 \| 48 }`; users include `settings` (defaults filled by the API) |
 | POST, DELETE | `/api/users/me/avatar` | Auth — profile photo (multipart `image`, ≤ 5 MB); users and people on notes include `avatar: { url } \| null` |
-| GET, POST | `/api/notes` | Auth — owned + shared notes; GET filters: `?pinned=`, `?label=`, `?q=`, `?reminder=true` |
+| GET, POST | `/api/notes` | Auth — owned + shared notes; GET filters: `?pinned=`, `?label=`, `?q=` (every word must appear in the title or content; `lib/search.jsx` splits and highlights words the same way), `?reminder=true` |
 | GET | `/api/notes/summary` | Auth — `{ totalNotes, reminders, labels: [{ name, count }] }` |
 | POST | `/api/notes/labels` | Auth — create a label no note uses yet (`{ name }`); 409 if it exists ignoring case |
 | PATCH, DELETE | `/api/notes/labels/:name` | Auth — rename (`{ name }`) or remove a label on all visible notes and the user's created labels |

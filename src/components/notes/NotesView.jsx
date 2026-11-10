@@ -19,6 +19,7 @@ import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { useNotesFilters } from "@/hooks/useNotesFilters";
 import { useReminderAlerts } from "@/hooks/useReminderAlerts";
 import { notesApi } from "@/lib/api";
+import { highlightPattern, searchWords } from "@/lib/search";
 import { getSettings } from "@/lib/settings";
 
 /** Pinned notes, and notes with reminders for alerts, are loaded together up to the API maximum. */
@@ -216,6 +217,9 @@ function NotesScreen() {
   };
 
   const heading = reminderView ? "Reminders" : label || (q ? `Results for "${q}"` : "All notes");
+  const highlight = useMemo(() => highlightPattern(searchWords(q)), [q]);
+  // Matches found by the search: pinned ones plus every other match (not just this page).
+  const resultCount = q && pinned.data && others.data ? pinned.data.meta.total + others.data.meta.total : null;
   const labelSuggestions = summary.data?.labels.map((item) => item.name) ?? [];
   const showPinned = page === 1 && (pinned.data?.data.length ?? 0) > 0;
   // Only the very first load shows "Loading…"; later reloads keep the current notes on screen
@@ -230,7 +234,7 @@ function NotesScreen() {
       : "No notes yet. Use “Take a note…” above to write your first one.";
 
   const renderNote = (note) => (
-    <NoteCard note={note} onOpen={openEditor} onTogglePin={handleTogglePin} currentUserId={user?._id} />
+    <NoteCard note={note} onOpen={openEditor} onTogglePin={handleTogglePin} currentUserId={user?._id} highlight={highlight} />
   );
 
   return (
@@ -260,6 +264,11 @@ function NotesScreen() {
       <NoteComposer onCreate={handleCreate} labelSuggestions={labelSuggestions} />
 
       <h1 className="mt-[26px] text-[22px] leading-7 font-extrabold break-words">{heading}</h1>
+      {resultCount !== null && !loading && !error && (
+        <p className="mt-1 text-[14px] text-muted-foreground" role="status">
+          {resultCount === 1 ? "1 note found" : `${resultCount} notes found`}
+        </p>
+      )}
 
       {error && (
         <div className="mt-6 flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-6" role="alert">

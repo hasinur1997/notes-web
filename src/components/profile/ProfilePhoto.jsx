@@ -94,7 +94,7 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
           disabled={busy}
           aria-label={hasPhoto ? "Change profile photo" : "Upload profile photo"}
           title={hasPhoto ? "Change photo" : "Upload photo"}
-          className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-card bg-primary text-foreground hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
+          className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-card bg-primary text-foreground hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none disabled:opacity-60"
         >
           <Camera className="size-4" aria-hidden="true" />
         </button>

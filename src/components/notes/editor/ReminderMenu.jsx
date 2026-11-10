@@ -101,7 +101,7 @@ export function ReminderMenu({ value, onChange }) {
             min={openedAt ? toDateTimeLocal(new Date(openedAt)) : undefined}
             onChange={(event) => setCustom(event.target.value)}
             aria-label="Reminder date and time"
-            className="h-[42px] w-full rounded-[10px] border border-border bg-card px-3 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+            className="h-[42px] w-full rounded-[10px] border border-border bg-card px-3 text-[15px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus"
           />
           {custom && !customValid && <p className="text-xs text-destructive">Choose a time in the future.</p>}
           <DialogFooter className="mx-0 mb-0 rounded-none border-0 bg-transparent p-0">

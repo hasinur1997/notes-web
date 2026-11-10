@@ -36,7 +36,7 @@ export function OptionGroup({ name, legend, hint, value, options, onChange, disa
           return (
             <label
               key={option.value}
-              className={`relative flex cursor-pointer rounded-xl border transition-[background-color,border-color,box-shadow,color] duration-200 ease-out has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 has-[:disabled]:cursor-wait ${
+              className={`relative flex cursor-pointer rounded-xl border transition-[background-color,border-color,box-shadow,color] duration-200 ease-out has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-focus has-[:disabled]:cursor-wait ${
                 checked ? "border-brand-strong bg-brand-soft text-brand-strong" : "border-border bg-card hover:bg-muted"
               } ${compact ? "h-10 min-w-16 items-center justify-center px-4 text-[15px] font-bold" : "items-start gap-3 p-4"}`}
             >

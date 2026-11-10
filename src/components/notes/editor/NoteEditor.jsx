@@ -310,7 +310,7 @@ export function NoteEditor({
           type="button"
           onClick={onClose}
           disabled={closing}
-          className="ml-auto h-9 shrink-0 rounded-[10px] px-5 text-[15px] font-bold transition-colors hover:bg-foreground/5 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
+          className="ml-auto h-9 shrink-0 rounded-[10px] px-5 text-[15px] font-bold transition-colors hover:bg-foreground/5 focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none disabled:opacity-60"
         >
           {closing ? "Saving…" : "Close"}
         </button>

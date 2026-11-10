@@ -24,6 +24,7 @@
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
+  --color-focus: var(--focus);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -78,7 +79,10 @@
   --destructive: #b42318;
   --border: #e6dacb;
   --input: #e6dacb;
-  --ring: #f2a93b;
+  /* Focus: a caramel border (a lighter shade of brand-strong) with a soft peach halo, so focus
+     reads clearly without the bright amber of buttons. */
+  --ring: #b8762c;
+  --focus: #f9dfb4;
   --placeholder: #757575;
   --brand-soft: #fdebcb;
   --brand-strong: #8f4e0a;

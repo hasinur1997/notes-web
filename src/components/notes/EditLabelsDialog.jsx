@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 
 const MAX_LABEL_LENGTH = 30;
 const ICON_BUTTON =
-  "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35";
+  "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35";
 const UNDERLINE_INPUT =
   "h-9 min-w-0 flex-1 border-b bg-transparent text-[15px] outline-none placeholder:text-placeholder";
 
@@ -64,7 +64,7 @@ export function EditLabelsDialog({ open, onOpenChange, labels, onCreate, onRenam
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="h-9 rounded-[10px] px-5 text-[15px] font-bold transition-colors hover:bg-foreground/5 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="h-9 rounded-[10px] px-5 text-[15px] font-bold transition-colors hover:bg-foreground/5 focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none"
           >
             Done
           </button>

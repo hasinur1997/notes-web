@@ -96,7 +96,7 @@ export function CollaboratorsDialog({ open, onOpenChange, owner, collaborators, 
               placeholder="Person's email to share with"
               aria-label="Email of the person to share with"
               maxLength={254}
-              className="h-10 min-w-0 flex-1 rounded-[10px] border border-border bg-card px-3 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+              className="h-10 min-w-0 flex-1 rounded-[10px] border border-border bg-card px-3 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus"
             />
             <Button type="submit" disabled={!valid || busy} className="h-10 rounded-[10px] px-4 text-[15px] font-bold">
               Add

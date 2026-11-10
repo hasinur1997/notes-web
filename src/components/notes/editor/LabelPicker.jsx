@@ -101,7 +101,7 @@ export function LabelPicker({ open, onOpenChange, anchor, allLabels, value, onCh
                   <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggle(label)} className="peer sr-only" />
                   <span
                     aria-hidden="true"
-                    className={`flex size-[18px] shrink-0 items-center justify-center rounded-[4px] border-2 peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50 ${
+                    className={`flex size-[18px] shrink-0 items-center justify-center rounded-[4px] border-2 peer-focus-visible:ring-3 peer-focus-visible:ring-focus ${
                       checked ? "border-brand-strong bg-brand-strong text-white" : "border-muted-foreground"
                     }`}
                   >

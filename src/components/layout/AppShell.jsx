@@ -58,7 +58,7 @@ export function AppShell({ renderSidebar, searchValue = "", onSearch, children }
               <Menu className="size-6" strokeWidth={2} aria-hidden="true" />
             </button>
           )}
-          <Link href="/notes" aria-label="Notes home" className="rounded-[10px] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
+          <Link href="/notes" aria-label="Notes home" className="rounded-[10px] focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none">
             <BrandLogo nameClassName="hidden sm:inline" />
           </Link>
         </div>

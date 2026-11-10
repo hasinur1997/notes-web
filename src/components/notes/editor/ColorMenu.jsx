@@ -29,7 +29,7 @@ export function ColorMenu({ value, onChange }) {
               title={color.label}
               className={`flex size-9 items-center justify-center rounded-full border p-0 ${color.className} ${
                 value === color.key ? "border-brand-strong border-2" : "border-border"
-              } focus:ring-3 focus:ring-ring/50`}
+              } focus:ring-3 focus:ring-focus`}
             >
               {value === color.key && <Check className="size-4 text-brand-strong" aria-hidden="true" />}
             </DropdownMenuItem>

@@ -46,7 +46,7 @@ function ProfileScreen() {
       <div>
         <Link
           href="/notes"
-          className="inline-flex items-center gap-1.5 rounded-lg text-[15px] font-bold text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="inline-flex items-center gap-1.5 rounded-lg text-[15px] font-bold text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           Back to notes

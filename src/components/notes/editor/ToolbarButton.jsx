@@ -16,7 +16,7 @@ export function ToolbarButton({ label, pressed, disabled, children, className = 
       aria-pressed={pressed}
       title={label}
       disabled={disabled}
-      className={`flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 aria-pressed:bg-brand-soft aria-pressed:text-brand-strong ${className}`}
+      className={`flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none disabled:pointer-events-none disabled:opacity-35 aria-pressed:bg-brand-soft aria-pressed:text-brand-strong ${className}`}
       {...props}
     >
       {children}
@@ -26,4 +26,4 @@ export function ToolbarButton({ label, pressed, disabled, children, className = 
 
 /** Classes that make a dropdown trigger look like a ToolbarButton. */
 export const TOOLBAR_TRIGGER_CLASS =
-  "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-brand-soft data-popup-open:text-brand-strong";
+  "flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus data-popup-open:bg-brand-soft data-popup-open:text-brand-strong";

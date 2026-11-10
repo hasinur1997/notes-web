@@ -56,7 +56,7 @@ export function NoteCard({ note, onOpen, onTogglePin, currentUserId }) {
           <button
             type="button"
             onClick={() => onOpen(note)}
-            className="text-left outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+            className="text-left outline-none after:absolute after:inset-0 after:rounded-2xl focus-visible:after:ring-3 focus-visible:after:ring-focus"
           >
             {note.title}
           </button>

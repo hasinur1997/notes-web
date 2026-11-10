@@ -34,7 +34,7 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Account menu"
-        className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-focus"
       >
         <UserAvatar name={user?.name} avatar={user?.avatar} ringed />
       </DropdownMenuTrigger>

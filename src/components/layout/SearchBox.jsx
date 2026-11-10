@@ -45,7 +45,7 @@ export function SearchBox({ value, onSearch }) {
         placeholder="Search your notes"
         aria-label="Search your notes"
         maxLength={100}
-        className="h-11 w-full rounded-full border border-border bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 [&::-webkit-search-cancel-button]:hidden"
+        className="h-11 w-full rounded-full border border-border bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus [&::-webkit-search-cancel-button]:hidden"
       />
       {text && (
         <button

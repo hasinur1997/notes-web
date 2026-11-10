@@ -6,7 +6,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { authApi, setUnauthorizedHandler } from "@/lib/api";
+import { authApi, setUnauthorizedHandler, usersApi } from "@/lib/api";
 import { clearToken, getToken, setToken } from "@/lib/token";
 
 /** @typedef {"loading" | "authenticated" | "anonymous"} AuthStatus */
@@ -75,13 +75,22 @@ export function AuthProvider({ children }) {
     return user;
   }, []);
 
+  const updateProfile = useCallback(async (values) => {
+    const { user } = await usersApi.updateMe(values);
+    setSession({ status: "authenticated", user });
+    return user;
+  }, []);
+
   const logout = useCallback(() => {
     clearToken();
     setSession(ANONYMOUS);
     router.replace(LOGIN_PATH);
   }, [router]);
 
-  const value = useMemo(() => ({ ...session, register, login, logout }), [session, register, login, logout]);
+  const value = useMemo(
+    () => ({ ...session, register, login, logout, updateProfile }),
+    [session, register, login, logout, updateProfile],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -95,6 +104,7 @@ export function AuthProvider({ children }) {
  *   register: (values: { name: string, email: string, password: string }) => Promise<object>,
  *   login: (credentials: { email: string, password: string }) => Promise<object>,
  *   logout: () => void,
+ *   updateProfile: (values: { name?: string, interests?: string[] }) => Promise<object>,
  * }}
  * @throws {Error} If used outside <AuthProvider>.
  */

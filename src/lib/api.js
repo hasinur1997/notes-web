@@ -261,3 +261,14 @@ export const notesApi = {
   removeImage: (id, imageId) =>
     apiRequest(`/notes/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, { method: "DELETE" }),
 };
+
+/** Endpoints for the signed-in user's own account. */
+export const usersApi = {
+  /**
+   * Updates the signed-in user's name and/or interests.
+   *
+   * @param {{ name?: string, interests?: string[] }} values - Fields to change.
+   * @returns {Promise<{ user: object }>} The updated user.
+   */
+  updateMe: (values) => apiRequest("/users/me", { method: "PATCH", body: values }),
+};

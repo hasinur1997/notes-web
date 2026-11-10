@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Camera, ImageDown, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { CropPhotoDialog } from "@/components/profile/CropPhotoDialog";
+import { ImageCropDialog } from "@/components/crop/ImageCropDialog";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { useFileDrop } from "@/hooks/useFileDrop";
@@ -15,7 +15,8 @@ const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 /**
  * Profile photo with upload, change and remove. A chosen file is checked (type and size), then
- * cropped to a square in CropPhotoDialog, and only the cropped image is uploaded; the server
+ * cropped in ImageCropDialog (1:1 with a circle guide by default, any shape allowed), and only the
+ * cropped image is uploaded; the server
  * verifies the actual image again.
  *
  * @param {object} props
@@ -126,7 +127,15 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
       </div>
 
       <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(",")} hidden onChange={handleFile} aria-label="Profile photo file" />
-      <CropPhotoDialog file={pendingFile} onCancel={() => setPendingFile(null)} onApply={handleCropped} />
+      <ImageCropDialog
+        file={pendingFile}
+        title="Crop profile photo"
+        defaultAspect="1:1"
+        circleGuide
+        maxSize={1024}
+        onCancel={() => setPendingFile(null)}
+        onApply={handleCropped}
+      />
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

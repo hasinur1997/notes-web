@@ -66,7 +66,7 @@
 | DELETE | `/api/notes/:id` | Owner only |
 | POST | `/api/notes/:id/copy` | Owner or collaborator |
 | POST, DELETE | `/api/notes/:id/collaborators[/:userId]` | Owner (add/remove), or a collaborator removing themselves |
-| POST, DELETE | `/api/notes/:id/images[/:imageId]` | Owner or collaborator — multipart `image` ≤ 5 MB; 503 if uploads are not configured |
+| POST, PUT, DELETE | `/api/notes/:id/images[/:imageId]` | Owner or collaborator — multipart `image` ≤ 5 MB (PUT replaces an image in place, e.g. after cropping); 503 if uploads are not configured |
 
 Notes include `color`, `reminderAt`, `images`, `owner` / `collaborators` as `{ _id, name, email }`, and `isOwner`. `content` is Markdown, rendered only with `lib/markdown.jsx` (React elements, never HTML strings).
 | GET, POST | `/api/admin/users` | Admin |
@@ -130,7 +130,8 @@ src/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register/Login/ForgotPassword/ResetPassword views, ...
 │   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
-│   ├── profile/                  # ProfileView (photo, name, interests, account), ProfilePhoto, CropPhotoDialog, InterestsInput
+│   ├── profile/                  # ProfileView (photo, name, interests, account), ProfilePhoto, InterestsInput
+│   ├── crop/                     # ImageCropDialog (free-form crop: 8 handles, aspect presets, full image, rotate); geometry in lib/crop.js
 │   ├── notes/                    # NotesView, NoteCard, NoteGrid, NoteComposer, NoteEditorDialog, EditLabelsDialog, ...
 │   │   └── editor/               # NoteEditor (shared by composer + dialog), toolbar, FormatBar, ColorMenu, ReminderMenu, CollaboratorsDialog, NoteImages
 │   └── BrandLogo, Pager, AuthGuard, NoteForm, UserForm, ...

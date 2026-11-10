@@ -268,6 +268,20 @@ export const notesApi = {
   },
 
   /**
+   * Replaces an image of a note in place (used after cropping it).
+   *
+   * @param {string} id - Note id.
+   * @param {string} imageId - Image to replace.
+   * @param {File} file - The new (cropped) image.
+   * @returns {Promise<{ note: object }>}
+   */
+  replaceImage: (id, imageId, file) => {
+    const form = new FormData();
+    form.append("image", file);
+    return apiRequest(`/notes/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, { method: "PUT", body: form });
+  },
+
+  /**
    * Removes an image from a note.
    *
    * @param {string} id - Note id.

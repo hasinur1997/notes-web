@@ -137,6 +137,15 @@ function NotesScreen() {
         return null;
       }
     },
+    replaceImage: async (note, imageId, file) => {
+      try {
+        const { note: updated } = await withToast(() => notesApi.replaceImage(note._id, imageId, file), "Image cropped.");
+        refreshAll();
+        return updated;
+      } catch {
+        return null;
+      }
+    },
     removeImage: async (note, imageId) => {
       try {
         const { note: updated } = await withToast(() => notesApi.removeImage(note._id, imageId), "Image removed.");

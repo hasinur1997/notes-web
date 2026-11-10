@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { LabelChip } from "@/components/notes/LabelChip";
 import { PeopleAvatars } from "@/components/notes/PeopleAvatars";
 import { ReminderChip } from "@/components/notes/ReminderChip";
+import { ImageCropDialog } from "@/components/crop/ImageCropDialog";
 import { ColorMenu } from "@/components/notes/editor/ColorMenu";
 import { FormatBar } from "@/components/notes/editor/FormatBar";
 import { LabelPicker } from "@/components/notes/editor/LabelPicker";
@@ -16,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { pastedImages, useFileDrop } from "@/hooks/useFileDrop";
 import { useUndoableState } from "@/hooks/useUndoableState";
 import { applyFormat } from "@/lib/formatText";
+import { fetchImageFile } from "@/lib/imageUrl";
 import { noteColorClass } from "@/lib/noteColors";
 
 /** Must match the API limits. */
@@ -54,6 +56,7 @@ export function acceptImages(files, slotsLeft) {
  * @param {{ key: string, url: string, pending?: boolean }[]} props.images - Images to show.
  * @param {(files: File[]) => void} props.onAddImages - Adds validated image files.
  * @param {(key: string) => void} props.onRemoveImage - Removes an image.
+ * @param {(key: string, file: File) => void} props.onReplaceImage - Replaces an image with its cropped version.
  * @param {{ _id: string, name: string }[]} props.sharedWith - People shown as avatars.
  * @param {() => void} props.onOpenCollaborators - Opens the collaborators dialog.
  * @param {{ label: string, onSelect: () => void, destructive?: boolean }[]} props.moreActions - Items for the More menu.
@@ -70,6 +73,7 @@ export function NoteEditor({
   images,
   onAddImages,
   onRemoveImage,
+  onReplaceImage,
   sharedWith,
   onOpenCollaborators,
   moreActions,
@@ -81,6 +85,8 @@ export function NoteEditor({
   const [showFormat, setShowFormat] = useState(false);
   // The labels shortcut opens the picker right away; its anchor ref is read after mount.
   const [pickerOpen, setPickerOpen] = useState(startWithLabels);
+  // Image being cropped: its key and the file to crop.
+  const [cropTarget, setCropTarget] = useState(null);
   const moreRef = useRef(null);
   const contentRef = useRef(null);
   const fileRef = useRef(null);
@@ -162,6 +168,17 @@ export function NoteEditor({
 
   const { isDragging, dropProps } = useFileDrop(addFiles);
 
+  /** Opens the cropper for an image: queued files directly, stored images after downloading them. */
+  async function cropImage(key) {
+    const image = images.find((item) => item.key === key);
+    if (!image) return;
+    try {
+      setCropTarget({ key, file: image.file ?? (await fetchImageFile(image.url)) });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  }
+
   return (
     <div
       className={`relative rounded-2xl transition-colors ${noteColorClass(values.color)}`}
@@ -179,7 +196,16 @@ export function NoteEditor({
           {slotsLeft > 0 && <p className="text-xs">JPEG, PNG, WebP or GIF · up to {slotsLeft} more</p>}
         </div>
       )}
-      <NoteImages images={images} onRemove={onRemoveImage} />
+      <NoteImages images={images} onRemove={onRemoveImage} onCrop={cropImage} />
+      <ImageCropDialog
+        file={cropTarget?.file ?? null}
+        title="Crop image"
+        onCancel={() => setCropTarget(null)}
+        onApply={(cropped) => {
+          onReplaceImage(cropTarget.key, cropped);
+          setCropTarget(null);
+        }}
+      />
 
       <div className="flex items-start gap-2 pt-3 pr-3 pl-4.5">
         <input

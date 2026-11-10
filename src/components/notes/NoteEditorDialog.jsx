@@ -22,13 +22,15 @@ import { changedFields, draftFromNote, normalizeTitleAndContent } from "@/lib/no
  * @param {string[]} props.labelSuggestions - Labels the user already uses.
  * @param {object} props.actions - API actions provided by the page:
  *   save(note, changes), remove(note), copy(note), leave(note), addImages(note, files) → note,
- *   removeImage(note, imageId) → note, addCollaborator(note, email) → note, removeCollaborator(note, person).
+ *   replaceImage(note, imageId, file) → note, removeImage(note, imageId) → note, addCollaborator(note, email) → note, removeCollaborator(note, person).
  * @returns {JSX.Element}
  */
 export function NoteEditorDialog({ open, onOpenChange, note: initialNote, labelSuggestions, actions }) {
   const { user } = useAuth();
   const [note, setNote] = useState(initialNote);
   const [uploads, setUploads] = useState([]);
+  // Ids of images being replaced by their cropped version (shown dimmed with a spinner).
+  const [replacing, setReplacing] = useState([]);
   const [closing, setClosing] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [confirm, setConfirm] = useState(null);
@@ -77,7 +79,18 @@ export function NoteEditorDialog({ open, onOpenChange, note: initialNote, labelS
 
   if (!note) return <Dialog open={false} />;
 
-  const images = [...note.images.map((image) => ({ key: image._id, url: image.url })), ...uploads];
+  const images = [
+    ...note.images.map((image) => ({ key: image._id, url: image.url, pending: replacing.includes(image._id) })),
+    ...uploads,
+  ];
+
+  /** Uploads a cropped image in place of the original. */
+  async function replaceImage(imageId, file) {
+    setReplacing((current) => [...current, imageId]);
+    const updated = await actions.replaceImage(note, imageId, file);
+    setReplacing((current) => current.filter((id) => id !== imageId));
+    if (updated) setNote(updated);
+  }
   const sharedWith = note.isOwner
     ? note.collaborators
     : [note.owner, ...note.collaborators.filter((person) => person._id !== user?._id)];
@@ -100,6 +113,7 @@ export function NoteEditorDialog({ open, onOpenChange, note: initialNote, labelS
           closing={closing}
           images={images}
           onAddImages={addImages}
+          onReplaceImage={replaceImage}
           onRemoveImage={async (key) => {
             const updated = await actions.removeImage(note, key);
             if (updated) setNote(updated);

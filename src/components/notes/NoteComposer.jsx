@@ -162,6 +162,15 @@ export function NoteComposer({ onCreate, labelSuggestions }) {
         closing={closing}
         images={images}
         onAddImages={queueImages}
+        onReplaceImage={(key, file) =>
+          setImages((current) =>
+            current.map((image) => {
+              if (image.key !== key) return image;
+              URL.revokeObjectURL(image.url);
+              return { key: `${file.name}-${file.lastModified}-${Math.random()}`, url: URL.createObjectURL(file), file };
+            }),
+          )
+        }
         onRemoveImage={(key) =>
           setImages((current) => {
             const removed = current.find((image) => image.key === key);

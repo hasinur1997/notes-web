@@ -41,3 +41,20 @@ export function canOptimizeImage(url) {
     return false;
   }
 }
+
+/**
+ * Downloads an image as a File, so an already stored image can be cropped in the browser.
+ * Works for Cloudinary and for images served by the API (both allow cross-origin reads).
+ *
+ * @param {string} url - Stored image URL (absolute or an /uploads path).
+ * @returns {Promise<File>} The image file.
+ * @throws {Error} If the image cannot be downloaded.
+ */
+export async function fetchImageFile(url) {
+  // Bypass the HTTP cache: copies cached before the server sent CORS headers would be unreadable.
+  const response = await fetch(resolveImageUrl(url), { cache: "no-store" });
+  if (!response.ok) throw new Error("The image could not be loaded for cropping.");
+  const blob = await response.blob();
+  const name = decodeURIComponent(new URL(resolveImageUrl(url)).pathname.split("/").pop() || "image");
+  return new File([blob], name, { type: blob.type || "image/jpeg" });
+}

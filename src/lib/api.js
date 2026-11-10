@@ -303,6 +303,14 @@ export const usersApi = {
   updateMe: (values) => apiRequest("/users/me", { method: "PATCH", body: values }),
 
   /**
+   * Updates any of the signed-in user's settings.
+   *
+   * @param {{ notesPagination?: "pages" | "infinite", notesPerPage?: number }} values - Settings to change.
+   * @returns {Promise<{ user: object }>} The updated user (with `settings`).
+   */
+  updateSettings: (values) => apiRequest("/users/me/settings", { method: "PATCH", body: values }),
+
+  /**
    * Sets the profile photo.
    *
    * @param {File} file - JPEG, PNG, WebP or GIF up to 5 MB.

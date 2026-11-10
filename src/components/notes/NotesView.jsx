@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AppShell } from "@/components/layout/AppShell";
 import { EditLabelsDialog } from "@/components/notes/EditLabelsDialog";
+import { InfiniteScrollTrigger } from "@/components/notes/InfiniteScrollTrigger";
 import { NoteCard } from "@/components/notes/NoteCard";
 import { NoteComposer } from "@/components/notes/NoteComposer";
 import { NoteEditorDialog } from "@/components/notes/NoteEditorDialog";
@@ -14,12 +15,12 @@ import { Pager } from "@/components/Pager";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { useNotesFilters } from "@/hooks/useNotesFilters";
 import { useReminderAlerts } from "@/hooks/useReminderAlerts";
 import { notesApi } from "@/lib/api";
+import { getSettings } from "@/lib/settings";
 
-/** Notes per page in the "Others" section (fills 3 rows of 4 columns). */
-const PAGE_SIZE = 12;
 /** Pinned notes, and notes with reminders for alerts, are loaded together up to the API maximum. */
 const BULK_LIMIT = 50;
 
@@ -57,13 +58,17 @@ async function withToast(call, success) {
 
 /**
  * Notes screen: sidebar (all notes, reminders, labels), composer, pinned and other notes,
- * pagination, and the dialogs for editing notes and labels. Filters live in the URL.
+ * pagination (page numbers or infinite scroll, per the user's settings), and the dialogs for
+ * editing notes and labels. Filters and the page number live in the URL.
  *
  * @returns {JSX.Element}
  */
 function NotesScreen() {
   const { user } = useAuth();
-  const { view, label, q, page, setFilters } = useNotesFilters();
+  const { view, label, q, page: urlPage, setFilters } = useNotesFilters();
+  const { notesPagination, notesPerPage } = getSettings(user);
+  const infinite = notesPagination === "infinite";
+  const page = infinite ? 1 : urlPage;
   const [editor, setEditor] = useState({ open: false, note: null, key: 0 });
   const [labelsOpen, setLabelsOpen] = useState(false);
   const reminderView = view === "reminders";
@@ -74,9 +79,14 @@ function NotesScreen() {
   const pinned = useApiQuery(`pinned?${filterKey}`, (signal) =>
     notesApi.list({ ...listFilters, pinned: true, limit: BULK_LIMIT }, signal),
   );
-  const others = useApiQuery(`others?${filterKey}&page=${page}`, (signal) =>
-    notesApi.list({ ...listFilters, pinned: false, page, limit: PAGE_SIZE }, signal),
+  // Only one of these two runs, depending on the pagination setting (the other gets a null key).
+  const othersPaged = useApiQuery(infinite ? null : `others?${filterKey}&limit=${notesPerPage}&page=${page}`, (signal) =>
+    notesApi.list({ ...listFilters, pinned: false, page, limit: notesPerPage }, signal),
   );
+  const othersInfinite = useInfiniteList(infinite ? `others?${filterKey}&limit=${notesPerPage}` : null, (next, signal) =>
+    notesApi.list({ ...listFilters, pinned: false, page: next, limit: notesPerPage }, signal),
+  );
+  const others = infinite ? othersInfinite : othersPaged;
   const reminders = useApiQuery("reminders", (signal) => notesApi.list({ reminder: true, limit: BULK_LIMIT }, signal));
   const reminderNotes = useMemo(() => reminders.data?.data ?? [], [reminders.data]);
   useReminderAlerts(reminderNotes);
@@ -117,7 +127,7 @@ function NotesScreen() {
     },
     remove: async (note) => {
       await withToast(() => notesApi.remove(note._id), "Note deleted.");
-      if (page > 1 && others.data?.data.length === 1 && !note.pinned) setFilters({ page: page - 1 });
+      if (!infinite && page > 1 && others.data?.data.length === 1 && !note.pinned) setFilters({ page: page - 1 });
       refreshAll();
     },
     copy: async (note) => {
@@ -277,7 +287,7 @@ function NotesScreen() {
           <h2 id="pinned-heading" className="mb-2 text-[13px] leading-[18px] font-semibold text-muted-foreground">
             Pinned
           </h2>
-          <NoteGrid notes={pinned.data.data} renderNote={renderNote} />
+          <NoteGrid key={pinned.dataKey} notes={pinned.data.data} renderNote={renderNote} />
         </section>
       )}
 
@@ -288,13 +298,23 @@ function NotesScreen() {
               Others
             </h2>
           )}
-          <NoteGrid notes={others.data.data} renderNote={renderNote} />
+          <NoteGrid key={others.dataKey} notes={others.data.data} renderNote={renderNote} />
         </section>
       )}
 
-      {!loading && !error && (
+      {!loading && !error && !isEmpty && (
         <div className="mt-6">
-          <Pager page={page} totalPages={others.data?.meta.totalPages ?? 0} hrefFor={hrefFor} />
+          {infinite ? (
+            <InfiniteScrollTrigger
+              hasMore={othersInfinite.hasMore}
+              loading={othersInfinite.loadingMore}
+              error={othersInfinite.loadMoreError}
+              onLoadMore={othersInfinite.loadMore}
+              endMessage={(others.data?.meta.total ?? 0) > notesPerPage ? "You've reached the end." : ""}
+            />
+          ) : (
+            <Pager page={page} totalPages={others.data?.meta.totalPages ?? 0} hrefFor={hrefFor} />
+          )}
         </div>
       )}
 

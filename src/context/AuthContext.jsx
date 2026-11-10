@@ -81,6 +81,12 @@ export function AuthProvider({ children }) {
     return user;
   }, []);
 
+  const updateSettings = useCallback(async (values) => {
+    const { user } = await usersApi.updateSettings(values);
+    setSession({ status: "authenticated", user });
+    return user;
+  }, []);
+
   const uploadAvatar = useCallback(async (file) => {
     const { user } = await usersApi.uploadAvatar(file);
     setSession({ status: "authenticated", user });
@@ -100,8 +106,8 @@ export function AuthProvider({ children }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ ...session, register, login, logout, updateProfile, uploadAvatar, removeAvatar }),
-    [session, register, login, logout, updateProfile, uploadAvatar, removeAvatar],
+    () => ({ ...session, register, login, logout, updateProfile, updateSettings, uploadAvatar, removeAvatar }),
+    [session, register, login, logout, updateProfile, updateSettings, uploadAvatar, removeAvatar],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -117,6 +123,7 @@ export function AuthProvider({ children }) {
  *   login: (credentials: { email: string, password: string }) => Promise<object>,
  *   logout: () => void,
  *   updateProfile: (values: { name?: string, interests?: string[] }) => Promise<object>,
+ *   updateSettings: (values: { notesPagination?: string, notesPerPage?: number }) => Promise<object>,
  *   uploadAvatar: (file: File) => Promise<object>,
  *   removeAvatar: () => Promise<object>,
  * }}

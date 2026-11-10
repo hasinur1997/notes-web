@@ -156,7 +156,7 @@ src/
 - Screens are built to match the provided designs. Visual tokens (colors, radius) live only in `src/app/globals.css` as shadcn CSS variables (`--primary`, `--border`, `--brand-soft`, ...); use the Tailwind classes they generate (`bg-primary`, `text-muted-foreground`, `bg-brand-soft`), never raw hex values in components.
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
-- No animations beyond the components' defaults, no dark-mode work.
+- No animations beyond the components' defaults, no dark-mode work. Exception: the image cropper animates rotation (requested; skipped with `prefers-reduced-motion`).
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.

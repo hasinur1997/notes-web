@@ -24,6 +24,15 @@ const MAX_STAGE_HEIGHT = 420;
 const MIN_CROP_DISPLAY = 24;
 /** Arrow key step as a fraction of the image's shorter side. */
 const KEY_STEP = 0.01;
+/** Length of the rotate animation, in ms. */
+const ROTATE_MS = 280;
+/** Easing of the rotate animation (fast start, gentle stop). */
+const ROTATE_EASING = "cubic-bezier(0.2, 0, 0, 1)";
+
+/** Resolves after `ms` milliseconds. */
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/** Resolves on the next frame that has been painted (so a CSS transition has a start state). */
+const nextPaint = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
 /**
  * Free-form image cropper in a dialog. The whole image is shown; the crop can be moved, resized
@@ -81,6 +90,7 @@ function Cropper({ file, onCancel, onApply, defaultAspect, circleGuide, maxSize 
   const [stageWidth, setStageWidth] = useState(0);
   const [error, setError] = useState("");
   const [applying, setApplying] = useState(false);
+  const [turn, setTurn] = useState(null); // rotate animation in progress (see rotate)
   const imgRef = useRef(null);
   const stageRef = useRef(null);
   const drag = useRef(null);
@@ -135,12 +145,37 @@ function Cropper({ file, onCancel, onApply, defaultAspect, circleGuide, maxSize 
     setRect(fullRect(image));
   }
 
-  /** Rotates by 90° (lossless), then starts again from the selected preset. */
-  function rotate(direction) {
-    if (!imgRef.current || !image) return;
-    setImage(null);
-    setRect(null);
-    setSrc(rotateImage(imgRef.current, direction).toDataURL("image/png"));
+  /**
+   * Rotates by 90° (lossless), then starts again from the selected preset. The current picture
+   * turns and rescales with a CSS transition while the frame takes its new shape; the rotated
+   * image is swapped in only once it is decoded and the animation has finished, so nothing flashes.
+   */
+  async function rotate(direction) {
+    if (!imgRef.current || !image || !scale || turn) return;
+    const rotated = { width: image.height, height: image.width };
+    const newScale = fitScale(rotated, stageWidth, MAX_STAGE_HEIGHT);
+    const url = rotateImage(imgRef.current, direction).toDataURL("image/png");
+    const decoded = new Image();
+    decoded.src = url;
+    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ROTATE_MS;
+
+    if (duration) {
+      const from = { width: image.width * scale, height: image.height * scale };
+      setTurn({ duration, imgWidth: from.width, imgHeight: from.height, angle: 0, zoom: 1, ...from });
+      await nextPaint();
+      setTurn((current) => ({
+        ...current,
+        angle: direction * 90,
+        zoom: newScale / scale,
+        width: rotated.width * newScale,
+        height: rotated.height * newScale,
+      }));
+    }
+    await Promise.all([decoded.decode().catch(() => {}), wait(duration)]);
+    setSrc(url);
+    setImage(rotated);
+    setRect(centeredRect(rotated, resolveAspect(preset.value, rotated)));
+    setTurn(null);
   }
 
   /** Starts moving (mode "move") or resizing (a handle key) the crop. */
@@ -193,15 +228,15 @@ function Cropper({ file, onCancel, onApply, defaultAspect, circleGuide, maxSize 
     }
   }
 
-  const box = shown && scale ? { left: rect.x * scale, top: rect.y * scale, width: rect.w * scale, height: rect.h * scale } : null;
+  const box = shown && scale && !turn ? { left: rect.x * scale, top: rect.y * scale, width: rect.w * scale, height: rect.h * scale } : null;
 
   return (
     <>
       {/* Padding leaves room for the handles, which sit half outside the frame at the image edges. */}
       <div ref={stageRef} className="flex w-full justify-center p-3">
         <div
-          className="relative rounded-sm bg-foreground/90 select-none"
-          style={image && scale ? { width: image.width * scale, height: image.height * scale } : { width: "100%", height: 240 }}
+          className={`relative rounded-sm select-none ${turn ? "" : "bg-foreground/90"}`}
+          style={stageStyle(image, scale, turn)}
           onPointerMove={handlePointerMove}
           onPointerUp={() => (drag.current = null)}
           onPointerCancel={() => (drag.current = null)}
@@ -216,6 +251,7 @@ function Cropper({ file, onCancel, onApply, defaultAspect, circleGuide, maxSize 
               onError={() => setError("This file couldn't be opened as an image.")}
               draggable={false}
               className="pointer-events-none block size-full"
+              style={turn ? turningImageStyle(turn) : undefined}
             />
           )}
           {!image && !error && (
@@ -294,7 +330,7 @@ function Cropper({ file, onCancel, onApply, defaultAspect, circleGuide, maxSize 
                 type="button"
                 onClick={() => chooseAspect(item.key)}
                 aria-pressed={aspectKey === item.key}
-                disabled={!image}
+                disabled={!image || Boolean(turn)}
                 className="h-8 rounded-full border border-border px-3 text-[13px] font-semibold transition-colors hover:bg-brand-soft disabled:opacity-50 aria-pressed:border-brand-strong aria-pressed:bg-brand-soft aria-pressed:text-brand-strong"
               >
                 {item.label}
@@ -303,17 +339,17 @@ function Cropper({ file, onCancel, onApply, defaultAspect, circleGuide, maxSize 
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1">
-              <ToolButton label="Use full image" onClick={useFullImage} disabled={!image}>
+              <ToolButton label="Use full image" onClick={useFullImage} disabled={!image || Boolean(turn)}>
                 <Maximize className="size-4" aria-hidden="true" />
                 Full image
               </ToolButton>
-              <ToolButton label="Rotate left" onClick={() => rotate(-1)} disabled={!image} iconOnly>
+              <ToolButton label="Rotate left" onClick={() => rotate(-1)} disabled={!image || Boolean(turn)} iconOnly>
                 <RotateCcw className="size-4" aria-hidden="true" />
               </ToolButton>
-              <ToolButton label="Rotate right" onClick={() => rotate(1)} disabled={!image} iconOnly>
+              <ToolButton label="Rotate right" onClick={() => rotate(1)} disabled={!image || Boolean(turn)} iconOnly>
                 <RotateCw className="size-4" aria-hidden="true" />
               </ToolButton>
-              <ToolButton label="Reset crop" onClick={() => chooseAspect(aspectKey)} disabled={!image} iconOnly>
+              <ToolButton label="Reset crop" onClick={() => chooseAspect(aspectKey)} disabled={!image || Boolean(turn)} iconOnly>
                 <Undo2 className="size-4" aria-hidden="true" />
               </ToolButton>
             </div>
@@ -328,12 +364,35 @@ function Cropper({ file, onCancel, onApply, defaultAspect, circleGuide, maxSize 
         <Button type="button" variant="outline" onClick={onCancel} className="h-10 rounded-[10px] px-4 text-[15px]">
           Cancel
         </Button>
-        <Button type="button" onClick={apply} disabled={!shown || applying || Boolean(error)} className="h-10 rounded-[10px] px-5 text-[15px] font-bold">
+        <Button type="button" onClick={apply} disabled={!shown || applying || Boolean(error) || Boolean(turn)} className="h-10 rounded-[10px] px-5 text-[15px] font-bold">
           {applying ? "Applying…" : "Apply"}
         </Button>
       </DialogFooter>
     </>
   );
+}
+
+/** Size of the crop area: the shown image, the animated frame while rotating, or a placeholder. */
+function stageStyle(image, scale, turn) {
+  if (turn) {
+    const transition = `width ${turn.duration}ms ${ROTATE_EASING}, height ${turn.duration}ms ${ROTATE_EASING}`;
+    return { width: turn.width, height: turn.height, transition };
+  }
+  return image && scale ? { width: image.width * scale, height: image.height * scale } : { width: "100%", height: 240 };
+}
+
+/** Keeps the old picture at its size, centred, while it turns and rescales into the new frame. */
+function turningImageStyle(turn) {
+  return {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    width: turn.imgWidth,
+    height: turn.imgHeight,
+    maxWidth: "none",
+    transform: `translate(-50%, -50%) rotate(${turn.angle}deg) scale(${turn.zoom})`,
+    transition: `transform ${turn.duration}ms ${ROTATE_EASING}`,
+  };
 }
 
 /**

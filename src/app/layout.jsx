@@ -1,0 +1,31 @@
+import { Nunito } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/context/AuthContext";
+import "./globals.css";
+
+const nunito = Nunito({
+  variable: "--font-sans",
+  subsets: ["latin"],
+});
+
+export const metadata = {
+  title: { default: "Notes", template: "%s · Notes" },
+  description: "Private notes, public posts and simple sharing.",
+};
+
+/**
+ * Root layout: font, auth state and toast container for every page.
+ *
+ * @param {{ children: React.ReactNode }} props
+ * @returns {JSX.Element}
+ */
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={`${nunito.variable} h-full antialiased`}>
+      <body className="min-h-full">
+        <AuthProvider>{children}</AuthProvider>
+        <Toaster theme="light" position="top-center" richColors />
+      </body>
+    </html>
+  );
+}

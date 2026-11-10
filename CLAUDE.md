@@ -116,7 +116,8 @@ src/
 │       ├── users/ notes/ interests/
 ├── components/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
-│   └── Pager, AuthGuard, NoteForm, UserForm, ...
+│   ├── auth/                     # AuthLayout, FormField, RegisterForm, RegisterView, ...
+│   └── BrandLogo, Pager, AuthGuard, NoteForm, UserForm, ...
 ├── context/AuthContext.jsx
 ├── hooks/                        # reusable stateful logic (useNotes, usePagination, ...)
 └── lib/api.js, lib/utils.js
@@ -135,7 +136,10 @@ src/
 
 ### 4.4 UI Rules
 
-- Tailwind utilities + default shadcn theme. No custom design system, no animations, no dark-mode work.
+- Screens are built to match the provided designs. Visual tokens (colors, radius) live only in `src/app/globals.css` as shadcn CSS variables (`--primary`, `--border`, `--brand-soft`, ...); use the Tailwind classes they generate (`bg-primary`, `text-muted-foreground`, `bg-brand-soft`), never raw hex values in components.
+- Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
+- shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
+- No animations beyond the components' defaults, no dark-mode work.
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`. Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.

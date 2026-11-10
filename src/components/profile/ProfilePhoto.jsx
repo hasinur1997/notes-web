@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Camera, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { CropPhotoDialog } from "@/components/profile/CropPhotoDialog";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Button } from "@/components/ui/button";
 
@@ -12,8 +13,9 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 /**
- * Profile photo with upload, change and remove. Files are checked before uploading
- * (type and size); the server verifies the actual image again.
+ * Profile photo with upload, change and remove. A chosen file is checked (type and size), then
+ * cropped to a square in CropPhotoDialog, and only the cropped image is uploaded; the server
+ * verifies the actual image again.
  *
  * @param {object} props
  * @param {{ name: string, avatar?: { url: string } | null }} props.user - The signed-in user.
@@ -24,6 +26,8 @@ const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 export function ProfilePhoto({ user, onUpload, onRemove }) {
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // A chosen photo waiting to be cropped (the crop dialog is open while this is set).
+  const [pendingFile, setPendingFile] = useState(null);
   const fileRef = useRef(null);
   const hasPhoto = Boolean(user.avatar?.url);
 
@@ -40,7 +44,7 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
     }
   }
 
-  /** Checks the chosen file and uploads it. */
+  /** Checks the chosen file and opens the cropper. */
   function handleFile(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -49,7 +53,13 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
       toast.error("Choose a JPEG, PNG, WebP or GIF image up to 5 MB.");
       return;
     }
-    run(() => onUpload(file), "Profile photo updated.");
+    setPendingFile(file);
+  }
+
+  /** Uploads the cropped square. */
+  function handleCropped(cropped) {
+    setPendingFile(null);
+    run(() => onUpload(cropped), "Profile photo updated.");
   }
 
   return (
@@ -96,10 +106,11 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
             </Button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or GIF, up to 5 MB. Square photos look best.</p>
+        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or GIF, up to 5 MB. You can crop it before saving.</p>
       </div>
 
       <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(",")} hidden onChange={handleFile} aria-label="Profile photo file" />
+      <CropPhotoDialog file={pendingFile} onCancel={() => setPendingFile(null)} onApply={handleCropped} />
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}

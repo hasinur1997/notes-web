@@ -90,7 +90,7 @@ function SidebarItem({ icon: Icon, label, count, active, onClick, className }) {
       type="button"
       onClick={onClick}
       aria-current={active ? "page" : undefined}
-      className={`${ROW} ${className} ${active ? "bg-primary font-bold" : "font-medium hover:bg-brand-soft"}`}
+      className={`${ROW} ${className} ${active ? "bg-primary/75 font-bold" : "font-medium hover:bg-brand-soft"}`}
     >
       <Icon className="size-5 shrink-0" strokeWidth={2} aria-hidden="true" />
       <span className="min-w-0 flex-1 truncate">{label}</span>

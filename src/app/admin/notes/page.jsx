@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { AllNotesView } from "@/components/admin/AllNotesView";
 
 export const metadata = {
@@ -6,14 +7,16 @@ export const metadata = {
 };
 
 /**
- * /admin/notes: every note, read-only (admins only).
+ * /admin/notes: every note, read-only (admins only). Renders its own admin frame.
  *
  * @returns {JSX.Element}
  */
 export default function AdminNotesPage() {
   return (
     <Suspense>
-      <AllNotesView />
+      <AdminShell>
+        <AllNotesView />
+      </AdminShell>
     </Suspense>
   );
 }

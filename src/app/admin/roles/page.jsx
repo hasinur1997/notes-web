@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { RolesView } from "@/components/admin/RolesView";
 
 export const metadata = {
@@ -5,10 +7,16 @@ export const metadata = {
 };
 
 /**
- * /admin/roles: roles, permissions and role changes (admins only).
+ * /admin/roles: roles, permissions and role changes (admins only). Renders its own admin frame.
  *
  * @returns {JSX.Element}
  */
 export default function AdminRolesPage() {
-  return <RolesView />;
+  return (
+    <Suspense>
+      <AdminShell>
+        <RolesView />
+      </AdminShell>
+    </Suspense>
+  );
 }

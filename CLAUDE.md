@@ -126,8 +126,7 @@ src/
 │   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ settings/ posts/
 │   ├── users/[id]/posts/page.jsx # Scenario 2
 │   └── admin/
-│       ├── layout.jsx            # AdminShell: AuthGuard + AdminGuard, "Admin" badge, admin sidebar, find-user-by-email search
-│       ├── users/ notes/ roles/  # Users (CRUD), All notes (read-only, ?owner=), Roles & access
+│       ├── users/ notes/ roles/  # each page renders <AdminShell> (AuthGuard + AdminGuard, badge, sidebar, find-user search)
 ├── components/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register/Login/ForgotPassword/ResetPassword views, ...
@@ -153,6 +152,7 @@ src/
   - on 401 clears the token and redirects to `/login`
   - throws the API's `error.message` for toasts
 - Token is stored in `localStorage` and read only inside `useEffect` (avoid hydration mismatches). Show a loading state until auth is known.
+- Pages render their own guards (`AuthGuard`, `AdminShell`). Never put a guard in a `layout.jsx` that withholds `{children}`: Next.js then drops the page segment from rendering and cannot validate instant navigation.
 - Pagination state lives in the URL (`?page=`) via `useSearchParams`; wrap such pages in `<Suspense>`. The notes list follows the user's settings (`lib/settings.js`): page numbers (`useApiQuery`) or infinite scroll (`useInfiniteList` + `InfiniteScrollTrigger`), with `notesPerPage` as the page size.
 
 ### 4.4 UI Rules

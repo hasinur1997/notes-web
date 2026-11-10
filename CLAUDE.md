@@ -57,6 +57,7 @@
 | POST | `/api/auth/forgot-password` | Public — `{ email }`; same reply whether or not the account exists |
 | POST | `/api/auth/reset-password` | Public — `{ email, token, password }` from the emailed link; 400 `INVALID_RESET_TOKEN` if wrong/used/expired |
 | PATCH | `/api/users/me` | Auth — only `name`, `interests` |
+| PATCH | `/api/users/me/settings` | Auth — `{ notesPagination?: "pages" \| "infinite", notesPerPage?: 12 \| 24 \| 48 }`; users include `settings` (defaults filled by the API) |
 | POST, DELETE | `/api/users/me/avatar` | Auth — profile photo (multipart `image`, ≤ 5 MB); users and people on notes include `avatar: { url } \| null` |
 | GET, POST | `/api/notes` | Auth — owned + shared notes; GET filters: `?pinned=`, `?label=`, `?q=`, `?reminder=true` |
 | GET | `/api/notes/summary` | Auth — `{ totalNotes, reminders, labels: [{ name, count }] }` |
@@ -121,7 +122,8 @@ src/
 ├── app/
 │   ├── layout.jsx                # AuthProvider, nav, <Toaster />
 │   ├── page.jsx                  # redirect to /notes or /login
-│   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ posts/
+│   ├── template.jsx              # fades each new page in
+│   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ settings/ posts/
 │   ├── users/[id]/posts/page.jsx # Scenario 2
 │   └── admin/
 │       ├── layout.jsx            # admin guard
@@ -131,6 +133,7 @@ src/
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register/Login/ForgotPassword/ResetPassword views, ...
 │   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
 │   ├── profile/                  # ProfileView (photo, name, interests, account), ProfilePhoto, InterestsInput
+│   ├── settings/                 # SettingsView (saved to the account), OptionGroup (radio cards / pills)
 │   ├── crop/                     # ImageCropDialog (free-form crop: 8 handles, aspect presets, full image, rotate); geometry in lib/crop.js
 │   ├── notes/                    # NotesView, NoteCard, NoteGrid, NoteComposer, NoteEditorDialog, EditLabelsDialog, ...
 │   │   └── editor/               # NoteEditor (shared by composer + dialog), toolbar, FormatBar, ColorMenu, ReminderMenu, CollaboratorsDialog, NoteImages
@@ -149,14 +152,14 @@ src/
   - on 401 clears the token and redirects to `/login`
   - throws the API's `error.message` for toasts
 - Token is stored in `localStorage` and read only inside `useEffect` (avoid hydration mismatches). Show a loading state until auth is known.
-- Pagination state lives in the URL (`?page=`) via `useSearchParams`; wrap such pages in `<Suspense>`.
+- Pagination state lives in the URL (`?page=`) via `useSearchParams`; wrap such pages in `<Suspense>`. The notes list follows the user's settings (`lib/settings.js`): page numbers (`useApiQuery`) or infinite scroll (`useInfiniteList` + `InfiniteScrollTrigger`), with `notesPerPage` as the page size.
 
 ### 4.4 UI Rules
 
 - Screens are built to match the provided designs. Visual tokens (colors, radius) live only in `src/app/globals.css` as shadcn CSS variables (`--primary`, `--border`, `--brand-soft`, ...); use the Tailwind classes they generate (`bg-primary`, `text-muted-foreground`, `bg-brand-soft`), never raw hex values in components.
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
-- No animations beyond the components' defaults, no dark-mode work. Exception: the image cropper animates rotation (requested; skipped with `prefers-reduced-motion`).
+- Motion is smooth but short (150–300 ms, ease-out): pages fade in (`app/template.jsx`), note cards fade in the first time a grid shows them, interactive elements ease their colors (base rule in `globals.css`), scrolling is smooth, and the cropper animates rotation. `prefers-reduced-motion` turns all of it off globally. No dark-mode work.
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.

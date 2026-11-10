@@ -150,5 +150,37 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  /* Hover, focus and selected states ease in instead of snapping. A base-layer default, so any
+     transition utility on an element still takes precedence. */
+  a,
+  button,
+  label,
+  input,
+  textarea,
+  select,
+  [role="button"],
+  [role="menuitem"],
+  [role="option"] {
+    transition-property: color, background-color, border-color, text-decoration-color, opacity, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+}
+
+/* Smooth motion everywhere, unless the system asks for less: then animations, transitions and
+   smooth scrolling are effectively turned off. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

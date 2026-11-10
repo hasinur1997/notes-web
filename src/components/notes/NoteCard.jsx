@@ -4,6 +4,7 @@ import { LabelChip } from "@/components/notes/LabelChip";
 import { PeopleAvatars } from "@/components/notes/PeopleAvatars";
 import { ReminderChip } from "@/components/notes/ReminderChip";
 import { formatDate } from "@/lib/format";
+import { canOptimizeImage, resolveImageUrl } from "@/lib/imageUrl";
 import { Markdown } from "@/lib/markdown";
 import { noteColorClass } from "@/lib/noteColors";
 
@@ -21,6 +22,7 @@ import { noteColorClass } from "@/lib/noteColors";
  */
 export function NoteCard({ note, onOpen, onTogglePin, currentUserId }) {
   const [cover, ...moreImages] = note.images ?? [];
+  const coverUrl = cover ? resolveImageUrl(cover.url) : "";
   // Who else is on the note: for the owner, the collaborators; for a collaborator, the owner and the others.
   const everyone = note.isOwner === false ? [note.owner, ...note.collaborators] : (note.collaborators ?? []);
   const people = everyone.filter((person) => person._id !== currentUserId);
@@ -32,11 +34,12 @@ export function NoteCard({ note, onOpen, onTogglePin, currentUserId }) {
       {cover && (
         <div className="relative">
           <Image
-            src={cover.url}
+            src={coverUrl}
             alt=""
             width={cover.width}
             height={cover.height}
             sizes="(max-width: 640px) 100vw, 280px"
+            unoptimized={!canOptimizeImage(coverUrl)}
             className="max-h-64 w-full object-cover"
           />
           {moreImages.length > 0 && (

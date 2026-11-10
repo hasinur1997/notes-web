@@ -199,7 +199,9 @@ function NotesScreen() {
   const heading = reminderView ? "Reminders" : label || (q ? `Results for "${q}"` : "All notes");
   const labelSuggestions = summary.data?.labels.map((item) => item.name) ?? [];
   const showPinned = page === 1 && (pinned.data?.data.length ?? 0) > 0;
-  const loading = pinned.loading || others.loading;
+  // Only the very first load shows "Loading…"; later reloads keep the current notes on screen
+  // until fresh data arrives, so the grid does not flash after every change.
+  const loading = (pinned.loading && !pinned.data) || (others.loading && !others.data);
   const error = pinned.error || others.error;
   const isEmpty = !loading && !error && !showPinned && (others.data?.data.length ?? 0) === 0;
   const emptyMessage = reminderView

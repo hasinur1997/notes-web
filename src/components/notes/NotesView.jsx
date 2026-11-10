@@ -19,6 +19,7 @@ import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { useNotesFilters } from "@/hooks/useNotesFilters";
 import { useReminderAlerts } from "@/hooks/useReminderAlerts";
 import { notesApi } from "@/lib/api";
+import { isAdmin } from "@/lib/roles";
 import { highlightPattern, searchWords } from "@/lib/search";
 import { getSettings } from "@/lib/settings";
 
@@ -258,6 +259,8 @@ function NotesScreen() {
             setLabelsOpen(true);
             close();
           }}
+          showAdmin={isAdmin(user)}
+          onNavigate={close}
         />
       )}
     >

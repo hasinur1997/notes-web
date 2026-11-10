@@ -1,50 +1,65 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminGuard } from "@/components/admin/AdminGuard";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AppShell } from "@/components/layout/AppShell";
-
-const USERS_PATH = "/admin/users";
+import { NotesSidebar } from "@/components/notes/NotesSidebar";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { notesApi } from "@/lib/api";
 
 /**
- * Frame for every admin page: admins only, an "Admin" badge by the logo, the admin sidebar,
- * and a header search that finds a user by email (on the Users page).
+ * Frame for the admin pages: admins only, with the same header and notes sidebar as the notes
+ * page (the admin menus highlighted). Choosing a notes entry in the sidebar opens the notes page.
  *
- * @param {{ children: React.ReactNode }} props
+ * @param {object} props
+ * @param {"users" | "user-notes"} props.active - The admin menu to highlight.
+ * @param {React.ReactNode} props.children - Page content.
  * @returns {JSX.Element}
  */
-export function AdminShell({ children }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const onUsersPage = pathname === USERS_PATH;
-  const email = onUsersPage ? (searchParams.get("email") ?? "") : "";
-
-  /** Shows the user with that email (replacing history while typing on the Users page). */
-  function findUser(term) {
-    const target = term ? `${USERS_PATH}?email=${encodeURIComponent(term)}` : USERS_PATH;
-    if (onUsersPage) router.replace(target);
-    else if (term) router.push(target);
-  }
-
+export function AdminShell({ active, children }) {
   return (
     <AuthGuard>
       <AdminGuard>
-        <AppShell
-          searchValue={email}
-          onSearch={findUser}
-          searchPlaceholder="Find a user by email"
-          navLabel="Admin navigation"
-          badge={
-            <span className="hidden rounded-md bg-brand-soft px-1.5 py-0.5 text-xs font-bold text-brand-strong sm:inline">Admin</span>
-          }
-          renderSidebar={(close) => <AdminSidebar onNavigate={close} />}
-        >
-          {children}
-        </AppShell>
+        <AdminFrame active={active}>{children}</AdminFrame>
       </AdminGuard>
     </AuthGuard>
+  );
+}
+
+/** The header and sidebar, rendered once the user is known to be an admin. */
+function AdminFrame({ active, children }) {
+  const router = useRouter();
+  const summary = useApiQuery("summary", (signal) => notesApi.summary(signal));
+
+  /** Opens the notes page with the given filters. */
+  function openNotes(params) {
+    const query = new URLSearchParams(params).toString();
+    router.push(query ? `/notes?${query}` : "/notes");
+  }
+
+  return (
+    <AppShell
+      renderSidebar={(close) => (
+        <NotesSidebar
+          summary={summary.data}
+          activeView=""
+          activeLabel=""
+          activeAdmin={active}
+          showAdmin
+          onNavigate={close}
+          onSelectView={(view) => {
+            close();
+            openNotes(view ? { view } : {});
+          }}
+          onSelectLabel={(label) => {
+            close();
+            openNotes({ label });
+          }}
+        />
+      )}
+    >
+      {children}
+    </AppShell>
   );
 }

@@ -1,36 +1,12 @@
 /**
  * Roles shown in the admin area. The API decides what each role may do; this module only
- * describes it for people.
+ * describes them for people.
  */
 
 /** Role choices with the wording used in forms and on the Roles & access page. */
 export const ROLE_OPTIONS = [
   { value: "user", label: "User", description: "Manages their own notes, profile and settings." },
   { value: "admin", label: "Admin", description: "Everything a user can do, plus manage users and see all notes." },
-];
-
-/**
- * What each role can do, grouped for the permissions table. `admin` may be `true`, `false` or
- * a short qualifier string such as "Yes, read only".
- */
-export const PERMISSIONS = [
-  {
-    group: "Notes",
-    rows: [
-      { label: "Create, edit and delete their own notes", user: true, admin: true },
-      { label: "Read their own notes and notes shared with them", user: true, admin: true },
-      { label: "Share their notes with other people", user: true, admin: true },
-      { label: "Read everyone's notes", user: false, admin: "Yes, read only" },
-    ],
-  },
-  {
-    group: "People",
-    rows: [
-      { label: "Edit their own name, photo and interests", user: true, admin: true },
-      { label: "Create, edit and delete users", user: false, admin: true },
-      { label: "Change a person's role", user: false, admin: true },
-    ],
-  },
 ];
 
 /**

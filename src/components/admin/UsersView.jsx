@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPager } from "@/components/admin/AdminPager";
 import { UserFormDialog } from "@/components/admin/UserFormDialog";
+import { UserSearch } from "@/components/admin/UserSearch";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -14,42 +15,57 @@ import { useAuth } from "@/context/AuthContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { adminApi } from "@/lib/api";
 import { formatDate } from "@/lib/format";
-import { roleLabel } from "@/lib/roles";
+import { ROLE_OPTIONS } from "@/lib/roles";
 
 /** Users per page (fits the table without scrolling on a laptop screen). */
 const PAGE_SIZE = 8;
 /** Interests shown per row before "+N". */
 const MAX_INTERESTS_SHOWN = 3;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CARD = "overflow-hidden rounded-2xl border border-border bg-card shadow-[0_8px_24px_-12px] shadow-foreground/15";
 const TH = "px-4 py-3 text-left text-[13px] font-semibold text-muted-foreground";
 const ICON_BUTTON =
   "flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40";
 
 /**
- * /admin/users: every account, newest first, with create, edit, delete and a link to each
- * person's notes. `?email=` (from the header search) shows the one user with that address.
+ * /admin/users: every account, newest first. Search by name or email (`?q=`), create, edit,
+ * change a role right in the list, delete, and open a person's notes.
  *
  * @returns {JSX.Element}
  */
 export function UsersView() {
   const { user: me } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const email = (searchParams.get("email") ?? "").trim().toLowerCase();
-  const emailComplete = EMAIL_PATTERN.test(email);
+  const q = searchParams.get("q") ?? "";
   const [form, setForm] = useState({ open: false, user: null });
   const [deleting, setDeleting] = useState(null);
 
-  const key = email ? (emailComplete ? `email=${email}` : null) : `page=${page}`;
-  const users = useApiQuery(key, (signal) =>
-    adminApi.listUsers(email ? { email, limit: 1 } : { page, limit: PAGE_SIZE }, signal),
-  );
-  // A search must never show the previous list while it loads; page changes keep the old rows
-  // (faded) so the table does not jump.
-  const searching = Boolean(email) && users.dataKey !== key;
+  const key = `q=${q}&page=${page}`;
+  const users = useApiQuery(key, (signal) => adminApi.listUsers({ q: q || undefined, page, limit: PAGE_SIZE }, signal));
+  // A new search never shows the previous results while it loads; page changes keep the old
+  // rows (faded) so the table does not jump.
+  const searching = users.dataKey !== null && users.dataKey.split("&page=")[0] !== `q=${q}`;
   const rows = searching ? [] : (users.data?.data ?? []);
   const meta = searching ? undefined : users.data?.meta;
+
+  /** Puts the search in the URL (back to page 1), replacing history while typing. */
+  const handleSearch = useCallback(
+    (term) => router.replace(term ? `${pathname}?q=${encodeURIComponent(term)}` : pathname),
+    [router, pathname],
+  );
+
+  /** Changes a person's role from the list. */
+  async function handleRoleChange(person, role) {
+    try {
+      await adminApi.updateUser(person._id, { role });
+      toast.success(`${person.name} is now ${role === "admin" ? "an Admin" : "a User"}.`);
+      users.reload();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  }
 
   /** Creates or updates, then reloads the list. Rethrows so the dialog stays open on errors. */
   async function handleSubmit(values) {
@@ -79,7 +95,13 @@ export function UsersView() {
     }
   }
 
-  const hrefFor = (target) => (target > 1 ? `/admin/users?page=${target}` : "/admin/users");
+  const hrefFor = (target) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (target > 1) params.set("page", String(target));
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname;
+  };
   const first = meta ? (meta.page - 1) * meta.limit + 1 : 0;
   const last = meta ? first + rows.length - 1 : 0;
 
@@ -88,7 +110,7 @@ export function UsersView() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[32px] leading-10 font-extrabold">Users</h1>
-          <p className="mt-1 text-[15px] text-muted-foreground">Create accounts, change roles and remove people.</p>
+          <p className="mt-1 text-[15px] text-muted-foreground">Add people, change their role, or remove them.</p>
         </div>
         <Button onClick={() => setForm({ open: true, user: null })} className="h-11 gap-2 rounded-xl px-4 text-[15px] font-bold">
           <Plus className="size-5" aria-hidden="true" />
@@ -97,22 +119,19 @@ export function UsersView() {
       </div>
 
       <section className={CARD} aria-labelledby="users-heading">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3.5">
-          <h2 id="users-heading" className="text-[17px] font-extrabold">
-            {email ? `Results for "${email}"` : "All users"}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3.5">
+          <h2 id="users-heading" className="sr-only">
+            {q ? `Results for "${q}"` : "All users"}
           </h2>
-          {email ? (
-            <Link href="/admin/users" className="text-[14px] font-bold text-brand-strong hover:underline">
-              Show all users
-            </Link>
-          ) : (
-            meta && <p className="text-[14px] text-muted-foreground">{meta.total === 1 ? "1 user" : `${meta.total} users`}</p>
+          <UserSearch value={q} onSearch={handleSearch} className="w-full max-w-sm" />
+          {meta && (
+            <p className="text-[14px] text-muted-foreground" role="status">
+              {q ? `${meta.total} found` : meta.total === 1 ? "1 user" : `${meta.total} users`}
+            </p>
           )}
         </div>
 
-        {email && !emailComplete ? (
-          <p className="px-4 py-10 text-center text-[15px] text-muted-foreground">Type the full email address to find someone.</p>
-        ) : users.error ? (
+        {users.error ? (
           <div className="flex flex-col items-center gap-3 px-4 py-10 text-center" role="alert">
             <p className="text-[15px]">Couldn&apos;t load users. {users.error.message}</p>
             <Button variant="outline" onClick={users.reload} className="h-10 rounded-[10px] px-4 text-[15px]">
@@ -125,7 +144,16 @@ export function UsersView() {
           </p>
         ) : rows.length === 0 ? (
           <p className="px-4 py-10 text-center text-[15px] text-muted-foreground">
-            {email ? `No account uses ${email}.` : "No users yet."}
+            {q ? (
+              <>
+                Nobody matches &ldquo;{q}&rdquo;.{" "}
+                <Link href={pathname} className="font-bold text-brand-strong hover:underline">
+                  Show everyone
+                </Link>
+              </>
+            ) : (
+              "No users yet."
+            )}
           </p>
         ) : (
           <div className={`overflow-x-auto transition-opacity duration-200 ${users.loading ? "opacity-60" : ""}`} aria-busy={users.loading}>
@@ -146,6 +174,7 @@ export function UsersView() {
                     person={person}
                     isSelf={person._id === me?._id}
                     onEdit={() => setForm({ open: true, user: person })}
+                    onRoleChange={(role) => handleRoleChange(person, role)}
                     onDelete={() => setDeleting(person)}
                   />
                 ))}
@@ -154,7 +183,7 @@ export function UsersView() {
           </div>
         )}
 
-        {!email && meta && meta.total > 0 && (
+        {meta && meta.total > 0 && (
           <AdminPager summary={`Showing ${first}–${last} of ${meta.total}`} page={meta.page} totalPages={meta.totalPages} hrefFor={hrefFor} />
         )}
       </section>
@@ -186,10 +215,11 @@ export function UsersView() {
  * @param {object} props.person - The user.
  * @param {boolean} props.isSelf - Whether this is the signed-in admin (cannot be deleted).
  * @param {() => void} props.onEdit - Opens the edit dialog.
+ * @param {(role: string) => void} props.onRoleChange - Saves a new role.
  * @param {() => void} props.onDelete - Asks to delete.
  * @returns {JSX.Element}
  */
-function UserRow({ person, isSelf, onEdit, onDelete }) {
+function UserRow({ person, isSelf, onEdit, onRoleChange, onDelete }) {
   const interests = person.interests ?? [];
   return (
     <tr className="border-b border-border last:border-b-0">
@@ -206,13 +236,22 @@ function UserRow({ person, isSelf, onEdit, onDelete }) {
         </div>
       </td>
       <td className="px-4 py-3">
-        <span
-          className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-bold ${
-            person.role === "admin" ? "bg-primary/75 text-foreground" : "bg-muted text-muted-foreground"
+        <select
+          value={person.role}
+          onChange={(event) => onRoleChange(event.target.value)}
+          disabled={isSelf}
+          aria-label={`Role of ${person.name}`}
+          title={isSelf ? "You can't change your own role" : undefined}
+          className={`h-9 rounded-lg border px-2 text-[14px] font-semibold focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-70 ${
+            person.role === "admin" ? "border-transparent bg-primary/75" : "border-border bg-card"
           }`}
         >
-          {roleLabel(person.role)}
-        </span>
+          {ROLE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </td>
       <td className="hidden px-4 py-3 lg:table-cell">
         {interests.length ? (
@@ -234,7 +273,7 @@ function UserRow({ person, isSelf, onEdit, onDelete }) {
       <td className="px-4 py-3">
         <div className="flex items-center justify-end gap-1">
           <Link
-            href={`/admin/notes?owner=${person._id}`}
+            href={`/admin/user-notes?user=${person._id}`}
             className="mr-2 rounded-md text-[14px] font-bold whitespace-nowrap text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none"
           >
             View notes

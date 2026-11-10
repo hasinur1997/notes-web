@@ -70,8 +70,9 @@
 | POST, PUT, DELETE | `/api/notes/:id/images[/:imageId]` | Owner or collaborator — multipart `image` ≤ 5 MB (PUT replaces an image in place, e.g. after cropping); 503 if uploads are not configured |
 
 Notes include `color`, `reminderAt`, `images`, `owner` / `collaborators` as `{ _id, name, email }`, and `isOwner`. `content` is Markdown, rendered only with `lib/markdown.jsx` (React elements, never HTML strings).
-| GET, POST | `/api/admin/users` | Admin |
-| GET, PATCH, DELETE | `/api/admin/users/:id` | Admin |
+| GET, POST | `/api/admin/users` | Admin — GET `?q=` matches any part of a name or email |
+| GET, PATCH, DELETE | `/api/admin/users/:id` | Admin — PATCH any of name, email, role, interests, password; 403 for your own role / account |
+| GET | `/api/admin/users/:id/notes` | Admin — that user's notes as they see them (owned + shared), `?pinned=`, read-only |
 | GET | `/api/admin/notes?owner=` | Admin |
 | GET | `/api/admin/users/grouped-by-interest?interest=` | Admin — Scenario 1 |
 | GET, POST | `/api/posts` | GET public, POST auth |
@@ -126,13 +127,13 @@ src/
 │   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ settings/ posts/
 │   ├── users/[id]/posts/page.jsx # Scenario 2
 │   └── admin/
-│       ├── users/ notes/ roles/  # each page renders <AdminShell> (AuthGuard + AdminGuard, badge, sidebar, find-user search)
+│       ├── users/ user-notes/    # each page renders <AdminShell active=…> (AuthGuard + AdminGuard + the notes sidebar)
 ├── components/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register/Login/ForgotPassword/ResetPassword views, ...
 │   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
 │   ├── profile/                  # ProfileView (photo, name, interests, account), ProfilePhoto, InterestsInput
-│   ├── admin/                    # AdminShell, AdminGuard, AdminSidebar, AdminPager, UsersView, UserFormDialog, AllNotesView, RolesView
+│   ├── admin/                    # AdminShell, AdminGuard, AdminPager, UsersView, UserFormDialog, UserSearch, UserNotesView, NoteViewDialog
 │   ├── settings/                 # SettingsView (saved to the account), OptionGroup (radio cards / pills)
 │   ├── crop/                     # ImageCropDialog (free-form crop: 8 handles, aspect presets, full image, rotate); geometry in lib/crop.js
 │   ├── notes/                    # NotesView, NoteCard, NoteGrid, NoteComposer, NoteEditorDialog, EditLabelsDialog, ...
@@ -161,7 +162,7 @@ src/
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
 - Motion is smooth but short (150–300 ms, ease-out): pages fade in (`app/template.jsx`), note cards fade in the first time a grid shows them, interactive elements ease their colors (base rule in `globals.css`), scrolling is smooth, and the cropper animates rotation. `prefers-reduced-motion` turns all of it off globally. No dark-mode work.
-- Admin UI is additive: the notes screens are unchanged for everyone; admins get an "Admin" entry in the account menu. Role wording lives in `lib/roles.js`; the API alone enforces access.
+- Admin UI is additive: normal users see no change. Admins get two extra menus in the notes sidebar after Reminders: **Users** (create, edit, delete, search by name or email, role dropdown per row) and **User's Notes** (people as cards with search; choosing one shows their notes like the notes page, read-only, paged per the admin's settings via `usePagedList`). "Admin" in the account menu opens Users. Role wording lives in `lib/roles.js`; the API alone enforces access.
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.

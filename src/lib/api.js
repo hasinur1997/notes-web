@@ -333,9 +333,9 @@ export const usersApi = {
 /** Admin-only endpoints (the API returns 403 for everyone else). */
 export const adminApi = {
   /**
-   * Lists users newest first, or finds one by exact email.
+   * Lists users newest first, optionally only those whose name or email contains `q`.
    *
-   * @param {{ page?: number, limit?: number, email?: string }} params - Paging, or an email to look up.
+   * @param {{ page?: number, limit?: number, q?: string }} params - Paging and search text.
    * @param {AbortSignal} [signal] - Cancels the request.
    * @returns {Promise<{ data: object[], meta: { page: number, limit: number, total: number, totalPages: number } }>}
    */
@@ -376,11 +376,13 @@ export const adminApi = {
   deleteUser: (id) => apiRequest(`/admin/users/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   /**
-   * Lists every note newest first (read-only), optionally one owner's.
+   * Lists one user's notes as they see them (owned + shared with them), newest first, read-only.
    *
-   * @param {{ page?: number, limit?: number, owner?: string }} params - Paging and owner filter.
+   * @param {string} id - User id.
+   * @param {{ page?: number, limit?: number, pinned?: boolean }} params - Paging and pinned filter.
    * @param {AbortSignal} [signal] - Cancels the request.
    * @returns {Promise<{ data: object[], meta: { page: number, limit: number, total: number, totalPages: number } }>}
    */
-  listNotes: (params, signal) => apiRequest(`/admin/notes${toQueryString(params)}`, { signal }),
+  listUserNotes: (id, params, signal) =>
+    apiRequest(`/admin/users/${encodeURIComponent(id)}/notes${toQueryString(params)}`, { signal }),
 };

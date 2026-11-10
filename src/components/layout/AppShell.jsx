@@ -22,13 +22,10 @@ const DESKTOP_QUERY = "(min-width: 1024px)";
  * @param {(close: () => void) => React.ReactNode} [props.renderSidebar] - Sidebar content; call `close` after navigating. Without it the page has no sidebar or menu button.
  * @param {string} [props.searchValue=""] - Current search term.
  * @param {(term: string) => void} [props.onSearch] - Called when the search term changes; by default it opens the matching notes.
- * @param {string} [props.searchPlaceholder] - Placeholder for the search field (default "Search your notes").
- * @param {React.ReactNode} [props.badge] - Shown after the app name (e.g. "Admin").
- * @param {string} [props.navLabel="Notes navigation"] - Accessible name of the sidebar.
  * @param {React.ReactNode} props.children - Page content.
  * @returns {JSX.Element}
  */
-export function AppShell({ renderSidebar, searchValue = "", onSearch, searchPlaceholder, badge, navLabel = "Notes navigation", children }) {
+export function AppShell({ renderSidebar, searchValue = "", onSearch, children }) {
   const [desktopOpen, setDesktopOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
@@ -64,9 +61,8 @@ export function AppShell({ renderSidebar, searchValue = "", onSearch, searchPlac
           <Link href="/notes" aria-label="Notes home" className="rounded-[10px] focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none">
             <BrandLogo nameClassName="hidden sm:inline" />
           </Link>
-          {badge}
         </div>
-        <SearchBox value={searchValue} onSearch={onSearch ?? searchNotes} placeholder={searchPlaceholder} />
+        <SearchBox value={searchValue} onSearch={onSearch ?? searchNotes} />
         <div className="justify-self-end">
           <UserMenu />
         </div>
@@ -77,7 +73,7 @@ export function AppShell({ renderSidebar, searchValue = "", onSearch, searchPlac
         {hasSidebar && desktopOpen && (
           <aside
             className="sticky top-16 hidden h-[calc(100svh-4rem)] w-[248px] shrink-0 self-start px-4 pt-6 pb-4 lg:flex lg:flex-col"
-            aria-label={navLabel}
+            aria-label="Notes navigation"
           >
             {renderSidebar(() => {})}
           </aside>
@@ -88,7 +84,7 @@ export function AppShell({ renderSidebar, searchValue = "", onSearch, searchPlac
       {hasSidebar && (
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="w-[280px] bg-background px-4 pt-16 pb-4">
-            <SheetTitle className="sr-only">{navLabel}</SheetTitle>
+            <SheetTitle className="sr-only">Notes navigation</SheetTitle>
             {renderSidebar(() => setMobileOpen(false))}
           </SheetContent>
         </Sheet>

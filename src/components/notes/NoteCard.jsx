@@ -17,7 +17,8 @@ import { highlightText } from "@/lib/search";
  * @param {object} props
  * @param {object} props.note - The note (with images, owner, collaborators and isOwner).
  * @param {(note: object) => void} props.onOpen - Opens the note in the editor.
- * @param {(note: object) => void} props.onTogglePin - Pins or unpins the note.
+ * @param {(note: object) => void} [props.onTogglePin] - Pins or unpins the note. Without it the card is
+ *   read-only: pinned notes show a plain pin icon instead of a button.
  * @param {string} [props.currentUserId] - The signed-in user, left out of the "shared with" avatars.
  * @param {RegExp | null} [props.highlight] - Search words to mark in the title and text.
  * @returns {JSX.Element}
@@ -90,21 +91,25 @@ export function NoteCard({ note, onOpen, onTogglePin, currentUserId, highlight =
         <p className="mt-[7px] text-xs leading-[18px] text-muted-foreground">Edited {formatDate(note.updatedAt)}</p>
       </div>
 
-      <button
-        type="button"
-        onClick={() => onTogglePin(note)}
-        aria-label={note.pinned ? "Unpin note" : "Pin note"}
-        aria-pressed={note.pinned}
-        className={`absolute right-3.5 z-10 flex size-7 items-center justify-center rounded-full hover:bg-brand-soft focus-visible:opacity-100 ${
-          cover ? "top-2 bg-card/85" : "top-4"
-        } ${note.pinned ? "" : "opacity-0 group-hover:opacity-100"}`}
-      >
-        <Pin
-          className={`size-[18px] rotate-45 text-brand-strong ${note.pinned ? "fill-primary" : ""}`}
-          strokeWidth={2}
-          aria-hidden="true"
-        />
-      </button>
+      {onTogglePin ? (
+        <button
+          type="button"
+          onClick={() => onTogglePin(note)}
+          aria-label={note.pinned ? "Unpin note" : "Pin note"}
+          aria-pressed={note.pinned}
+          className={`absolute right-3.5 z-10 flex size-7 items-center justify-center rounded-full hover:bg-brand-soft focus-visible:opacity-100 ${
+            cover ? "top-2 bg-card/85" : "top-4"
+          } ${note.pinned ? "" : "opacity-0 group-hover:opacity-100"}`}
+        >
+          <Pin className={`size-[18px] rotate-45 text-brand-strong ${note.pinned ? "fill-primary" : ""}`} strokeWidth={2} aria-hidden="true" />
+        </button>
+      ) : (
+        note.pinned && (
+          <span className={`absolute right-3.5 flex size-7 items-center justify-center rounded-full ${cover ? "top-2 bg-card/85" : "top-4"}`} title="Pinned">
+            <Pin className="size-[18px] rotate-45 fill-primary text-brand-strong" strokeWidth={2} aria-label="Pinned" />
+          </span>
+        )
+      )}
     </article>
   );
 }

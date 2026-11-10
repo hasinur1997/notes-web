@@ -1,4 +1,5 @@
-import { Bell, File, Pencil, Tag } from "lucide-react";
+import Link from "next/link";
+import { Bell, File, NotebookText, Pencil, Tag, UsersRound } from "lucide-react";
 
 const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15px] transition-colors";
 
@@ -12,10 +13,23 @@ const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15
  * @param {string} props.activeLabel - Selected label, or "" for none.
  * @param {(view: "" | "reminders") => void} props.onSelectView - Shows all notes ("") or notes with reminders.
  * @param {(label: string) => void} props.onSelectLabel - Called with a label name.
- * @param {() => void} props.onEditLabels - Opens the label editor.
+ * @param {() => void} [props.onEditLabels] - Opens the label editor (the button is hidden without it).
+ * @param {boolean} [props.showAdmin=false] - Adds the admin menus (Users, User's Notes) after Reminders.
+ * @param {"users" | "user-notes" | null} [props.activeAdmin=null] - Highlights an admin menu (on admin pages).
+ * @param {() => void} [props.onNavigate] - Called after an admin menu is chosen (closes the mobile sheet).
  * @returns {JSX.Element}
  */
-export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, onSelectLabel, onEditLabels }) {
+export function NotesSidebar({
+  summary,
+  activeView,
+  activeLabel,
+  onSelectView,
+  onSelectLabel,
+  onEditLabels,
+  showAdmin = false,
+  activeAdmin = null,
+  onNavigate,
+}) {
   const labels = summary?.labels ?? [];
 
   return (
@@ -25,7 +39,7 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
         icon={File}
         label="All notes"
         count={summary?.totalNotes}
-        active={!activeLabel && !activeView}
+        active={!activeAdmin && !activeLabel && !activeView}
         onClick={() => onSelectView("")}
         className="h-11 shrink-0"
       />
@@ -33,11 +47,17 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
         icon={Bell}
         label="Reminders"
         count={summary?.reminders}
-        active={activeView === "reminders"}
+        active={!activeAdmin && activeView === "reminders"}
         onClick={() => onSelectView("reminders")}
         className="mt-1 h-11 shrink-0"
       />
 
+      {showAdmin && (
+        <>
+          <AdminLink href="/admin/users" icon={UsersRound} label="Users" active={activeAdmin === "users"} onNavigate={onNavigate} />
+          <AdminLink href="/admin/user-notes" icon={NotebookText} label="User's Notes" active={activeAdmin === "user-notes"} onNavigate={onNavigate} />
+        </>
+      )}
       <p className="mt-7 shrink-0 px-4 text-[13px] leading-[18px] font-semibold text-muted-foreground">Labels</p>
       <ul
         className="mt-2.5 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain [scrollbar-width:thin]"
@@ -49,7 +69,7 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
               icon={Tag}
               label={label.name}
               count={label.count}
-              active={label.name === activeLabel}
+              active={!activeAdmin && label.name === activeLabel}
               onClick={() => onSelectLabel(label.name)}
               className="h-12"
             />
@@ -60,14 +80,16 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
         )}
       </ul>
 
-      <button
-        type="button"
-        onClick={onEditLabels}
-        className={`${ROW} mt-1 h-12 shrink-0 font-bold text-brand-strong hover:bg-brand-soft`}
-      >
-        <Pencil className="size-5 shrink-0" strokeWidth={2} aria-hidden="true" />
-        Edit labels
-      </button>
+      {onEditLabels && (
+        <button
+          type="button"
+          onClick={onEditLabels}
+          className={`${ROW} mt-1 h-12 shrink-0 font-bold text-brand-strong hover:bg-brand-soft`}
+        >
+          <Pencil className="size-5 shrink-0" strokeWidth={2} aria-hidden="true" />
+          Edit labels
+        </button>
+      )}
     </nav>
   );
 }
@@ -96,5 +118,32 @@ function SidebarItem({ icon: Icon, label, count, active, onClick, className }) {
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {count !== undefined && <span className={active ? "" : "text-muted-foreground"}>{count}</span>}
     </button>
+  );
+}
+
+/**
+ * Admin menu row: a link styled like the other rows (admins only).
+ *
+ * @param {object} props
+ * @param {string} props.href - Admin page.
+ * @param {import("lucide-react").LucideIcon} props.icon - Row icon.
+ * @param {string} props.label - Visible name.
+ * @param {boolean} props.active - Highlights the row.
+ * @param {() => void} [props.onNavigate] - Called when chosen.
+ * @returns {JSX.Element}
+ */
+function AdminLink({ href, icon: Icon, label, active, onNavigate }) {
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={`${ROW} mt-1 h-11 shrink-0 focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none ${
+        active ? "bg-primary/75 font-bold" : "font-medium hover:bg-brand-soft"
+      }`}
+    >
+      <Icon className="size-5 shrink-0" strokeWidth={2} aria-hidden="true" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+    </Link>
   );
 }

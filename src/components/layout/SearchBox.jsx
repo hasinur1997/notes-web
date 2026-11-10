@@ -13,10 +13,9 @@ const DEBOUNCE_MS = 300;
  * @param {object} props
  * @param {string} props.value - Current search term (from the URL).
  * @param {(term: string) => void} props.onSearch - Called with the trimmed term (empty string clears).
- * @param {string} [props.placeholder="Search your notes"] - Placeholder and accessible name.
  * @returns {JSX.Element}
  */
-export function SearchBox({ value, onSearch, placeholder = "Search your notes" }) {
+export function SearchBox({ value, onSearch }) {
   const [text, setText] = useState(value);
   const [syncedValue, setSyncedValue] = useState(value);
   const inputRef = useRef(null);
@@ -60,9 +59,9 @@ export function SearchBox({ value, onSearch, placeholder = "Search your notes" }
         value={text}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => event.key === "Escape" && setText("")}
-        placeholder={placeholder}
+        placeholder="Search your notes"
         aria-keyshortcuts="/"
-        aria-label={placeholder}
+        aria-label="Search your notes"
         maxLength={100}
         className="h-11 w-full rounded-full border border-border bg-card pr-11 pl-12 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus [&::-webkit-search-cancel-button]:hidden"
       />

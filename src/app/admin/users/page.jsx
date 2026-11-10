@@ -15,7 +15,7 @@ export const metadata = {
 export default function AdminUsersPage() {
   return (
     <Suspense>
-      <AdminShell>
+      <AdminShell active="users">
         <UsersView />
       </AdminShell>
     </Suspense>

@@ -25,6 +25,9 @@
   --color-chart-1: var(--chart-1);
   --color-ring: var(--ring);
   --color-focus: var(--focus);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-success: var(--success);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
@@ -83,6 +86,10 @@
      reads clearly without the bright amber of buttons. */
   --ring: #b8762c;
   --focus: #f9dfb4;
+  /* Informational notices (admin read-only banners, role change preview) */
+  --info: #1d4e89;
+  --info-soft: #e3ecf7;
+  --success: #2f6b3a;
   --placeholder: #757575;
   --brand-soft: #fdebcb;
   --brand-strong: #8f4e0a;

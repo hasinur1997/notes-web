@@ -329,3 +329,58 @@ export const usersApi = {
    */
   removeAvatar: () => apiRequest("/users/me/avatar", { method: "DELETE" }),
 };
+
+/** Admin-only endpoints (the API returns 403 for everyone else). */
+export const adminApi = {
+  /**
+   * Lists users newest first, or finds one by exact email.
+   *
+   * @param {{ page?: number, limit?: number, email?: string }} params - Paging, or an email to look up.
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ data: object[], meta: { page: number, limit: number, total: number, totalPages: number } }>}
+   */
+  listUsers: (params, signal) => apiRequest(`/admin/users${toQueryString(params)}`, { signal }),
+
+  /**
+   * Loads one user.
+   *
+   * @param {string} id - User id.
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ user: object }>}
+   */
+  getUser: (id, signal) => apiRequest(`/admin/users/${encodeURIComponent(id)}`, { signal }),
+
+  /**
+   * Creates an account.
+   *
+   * @param {{ name: string, email: string, password: string, role: "user" | "admin", interests?: string[] }} values - New account.
+   * @returns {Promise<{ user: object }>}
+   */
+  createUser: (values) => apiRequest("/admin/users", { method: "POST", body: values }),
+
+  /**
+   * Changes an account. A new password signs that person out everywhere.
+   *
+   * @param {string} id - User id.
+   * @param {{ name?: string, email?: string, role?: "user" | "admin", interests?: string[], password?: string }} values - Fields to change.
+   * @returns {Promise<{ user: object }>}
+   */
+  updateUser: (id, values) => apiRequest(`/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: values }),
+
+  /**
+   * Deletes an account with its notes and images.
+   *
+   * @param {string} id - User id.
+   * @returns {Promise<null>}
+   */
+  deleteUser: (id) => apiRequest(`/admin/users/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
+  /**
+   * Lists every note newest first (read-only), optionally one owner's.
+   *
+   * @param {{ page?: number, limit?: number, owner?: string }} params - Paging and owner filter.
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ data: object[], meta: { page: number, limit: number, total: number, totalPages: number } }>}
+   */
+  listNotes: (params, signal) => apiRequest(`/admin/notes${toQueryString(params)}`, { signal }),
+};

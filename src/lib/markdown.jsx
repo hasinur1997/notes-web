@@ -147,3 +147,18 @@ export function Markdown({ text, className = "", highlight = null }) {
     </div>
   );
 }
+
+/**
+ * Note Markdown as one line of plain text, for previews (markers removed, whitespace collapsed).
+ *
+ * @param {string} text - Markdown text.
+ * @returns {string} Plain text.
+ */
+export function markdownToPlainText(text = "") {
+  return text
+    .replace(/^#{1,2}\s+/gm, "")
+    .replace(/^\s*(?:[-*]|\d+[.)])\s+/gm, "")
+    .replace(/\*\*|\+\+|~~|[*_]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}

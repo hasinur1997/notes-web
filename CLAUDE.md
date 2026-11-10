@@ -126,13 +126,14 @@ src/
 │   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ settings/ posts/
 │   ├── users/[id]/posts/page.jsx # Scenario 2
 │   └── admin/
-│       ├── layout.jsx            # admin guard
-│       ├── users/ notes/ interests/
+│       ├── layout.jsx            # AdminShell: AuthGuard + AdminGuard, "Admin" badge, admin sidebar, find-user-by-email search
+│       ├── users/ notes/ roles/  # Users (CRUD), All notes (read-only, ?owner=), Roles & access
 ├── components/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register/Login/ForgotPassword/ResetPassword views, ...
 │   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
 │   ├── profile/                  # ProfileView (photo, name, interests, account), ProfilePhoto, InterestsInput
+│   ├── admin/                    # AdminShell, AdminGuard, AdminSidebar, AdminPager, UsersView, UserFormDialog, AllNotesView, RolesView
 │   ├── settings/                 # SettingsView (saved to the account), OptionGroup (radio cards / pills)
 │   ├── crop/                     # ImageCropDialog (free-form crop: 8 handles, aspect presets, full image, rotate); geometry in lib/crop.js
 │   ├── notes/                    # NotesView, NoteCard, NoteGrid, NoteComposer, NoteEditorDialog, EditLabelsDialog, ...
@@ -160,6 +161,7 @@ src/
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
 - Motion is smooth but short (150–300 ms, ease-out): pages fade in (`app/template.jsx`), note cards fade in the first time a grid shows them, interactive elements ease their colors (base rule in `globals.css`), scrolling is smooth, and the cropper animates rotation. `prefers-reduced-motion` turns all of it off globally. No dark-mode work.
+- Admin UI is additive: the notes screens are unchanged for everyone; admins get an "Admin" entry in the account menu. Role wording lives in `lib/roles.js`; the API alone enforces access.
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.

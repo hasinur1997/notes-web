@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Settings, UserRound } from "lucide-react";
+import { LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import {
@@ -17,7 +17,7 @@ const ITEM_CLASS = "h-11 gap-2 rounded-lg px-2 text-[15px] font-medium [&_svg:no
 
 /**
  * Avatar button in the header that opens the account menu: name, email, Edit profile, Settings,
- * Sign out.
+ * Admin (admins only; the API enforces access either way), Sign out.
  *
  * @returns {JSX.Element}
  */
@@ -59,6 +59,12 @@ export function UserMenu() {
           <Settings aria-hidden="true" />
           Settings
         </DropdownMenuItem>
+        {user?.role === "admin" && (
+          <DropdownMenuItem render={<Link href="/admin/users" />} className={ITEM_CLASS}>
+            <ShieldCheck aria-hidden="true" />
+            Admin
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem variant="destructive" onClick={handleSignOut} className={ITEM_CLASS}>
           <LogOut aria-hidden="true" />
           Sign out

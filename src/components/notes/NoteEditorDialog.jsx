@@ -9,15 +9,14 @@ import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 
 /**
- * Builds the editor's starting values.
+ * Builds the editor's starting values from the note.
  *
- * @param {object | null} note - Existing note, or null for a new one.
- * @param {string} initialTitle - Title typed in the composer (new notes only).
+ * @param {{ title: string, content: string, labels: string[], pinned: boolean } | null} note - Note being edited.
  * @returns {{ title: string, content: string, labels: string[], pinned: boolean }}
  */
-function initialValues(note, initialTitle) {
+function initialValues(note) {
   return {
-    title: note?.title ?? initialTitle,
+    title: note?.title ?? "",
     content: note?.content ?? "",
     labels: note?.labels ?? [],
     pinned: note?.pinned ?? false,
@@ -25,24 +24,22 @@ function initialValues(note, initialTitle) {
 }
 
 /**
- * Dialog for creating or editing a note: title, content, labels and pin, plus delete for existing notes.
- * Remount it (change its `key`) to start from fresh values.
+ * Dialog for editing an existing note: title, content, labels and pin, plus delete.
+ * New notes are written in the inline composer instead. Remount it (change its `key`) to start from fresh values.
  *
  * @param {object} props
  * @param {boolean} props.open - Whether the dialog is shown.
  * @param {(open: boolean) => void} props.onOpenChange - Opens or closes it.
- * @param {object | null} props.note - Note to edit, or null to create one.
- * @param {string} [props.initialTitle=""] - Starting title for a new note.
+ * @param {object | null} props.note - Note to edit (null only while the dialog is closed).
  * @param {string[]} props.labelSuggestions - Labels the user already uses.
  * @param {(values: { title: string, content: string, labels: string[], pinned: boolean }) => Promise<void>} props.onSave - Saves; rejects to keep the dialog open.
  * @param {(note: object) => Promise<void>} props.onDelete - Deletes the note.
  * @returns {JSX.Element}
  */
-export function NoteEditorDialog({ open, onOpenChange, note, initialTitle = "", labelSuggestions, onSave, onDelete }) {
-  const [values, setValues] = useState(() => initialValues(note, initialTitle));
+export function NoteEditorDialog({ open, onOpenChange, note, labelSuggestions, onSave, onDelete }) {
+  const [values, setValues] = useState(() => initialValues(note));
   const [saving, setSaving] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const isNew = !note;
   const canSave = values.title.trim().length > 0 && !saving;
 
   /** Updates one field. */
@@ -71,7 +68,7 @@ export function NoteEditorDialog({ open, onOpenChange, note, initialTitle = "", 
         <form onSubmit={handleSubmit}>
           <div className="flex items-center justify-between gap-3 px-6 pt-5">
             <DialogTitle className="text-[13px] font-semibold text-muted-foreground">
-              {isNew ? "New note" : "Edit note"}
+              Edit note
             </DialogTitle>
             <button
               type="button"
@@ -114,19 +111,15 @@ export function NoteEditorDialog({ open, onOpenChange, note, initialTitle = "", 
           </div>
 
           <DialogFooter className="mx-0 mb-0 items-center rounded-b-2xl bg-background px-6 py-4 sm:justify-between">
-            {isNew ? (
-              <span />
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setConfirmOpen(true)}
-                className="h-10 gap-1.5 rounded-[10px] px-3 text-[15px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-                Delete
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmOpen(true)}
+              className="h-10 gap-1.5 rounded-[10px] px-3 text-[15px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              Delete
+            </Button>
             <div className="flex gap-2">
               <Button
                 type="button"
@@ -144,7 +137,7 @@ export function NoteEditorDialog({ open, onOpenChange, note, initialTitle = "", 
         </form>
       </DialogContent>
 
-      {!isNew && (
+      {note && (
         <ConfirmDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}

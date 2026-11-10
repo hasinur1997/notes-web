@@ -42,7 +42,7 @@ export function NotesView() {
  */
 function NotesScreen() {
   const { label, q, page, setFilters } = useNotesFilters();
-  const [editor, setEditor] = useState({ open: false, note: null, initialTitle: "", key: 0 });
+  const [editor, setEditor] = useState({ open: false, note: null, key: 0 });
   const [labelsOpen, setLabelsOpen] = useState(false);
 
   const filterKey = new URLSearchParams({ label, q }).toString();
@@ -61,17 +61,28 @@ function NotesScreen() {
     others.reload();
   }, [summary, pinned, others]);
 
-  /** Opens the editor for a new note (from the composer) or an existing one. */
-  const openEditor = useCallback((note, initialTitle = "") => {
-    setEditor((current) => ({ open: true, note, initialTitle, key: current.key + 1 }));
+  /** Opens an existing note in the edit dialog. */
+  const openEditor = useCallback((note) => {
+    setEditor((current) => ({ open: true, note, key: current.key + 1 }));
   }, []);
 
-  /** Creates or updates the note in the editor. Rethrows so the dialog stays open on failure. */
+  /** Creates a note from the inline composer. Rethrows so the composer stays open on failure. */
+  async function handleCreate(values) {
+    try {
+      await notesApi.create(values);
+      toast.success("Note added.");
+      refreshAll();
+    } catch (err) {
+      toast.error(err.message);
+      throw err;
+    }
+  }
+
+  /** Saves changes from the edit dialog. Rethrows so the dialog stays open on failure. */
   async function handleSave(values) {
     try {
-      if (editor.note) await notesApi.update(editor.note._id, values);
-      else await notesApi.create(values);
-      toast.success(editor.note ? "Note saved." : "Note added.");
+      await notesApi.update(editor.note._id, values);
+      toast.success("Note saved.");
       refreshAll();
     } catch (err) {
       toast.error(err.message);
@@ -138,6 +149,7 @@ function NotesScreen() {
   };
 
   const heading = label || (q ? `Results for "${q}"` : "All notes");
+  const labelSuggestions = summary.data?.labels.map((item) => item.name) ?? [];
   const showPinned = page === 1 && (pinned.data?.data.length ?? 0) > 0;
   const loading = pinned.loading || others.loading;
   const error = pinned.error || others.error;
@@ -164,7 +176,7 @@ function NotesScreen() {
         />
       )}
     >
-      <NoteComposer onCompose={(title) => openEditor(null, title)} />
+      <NoteComposer onCreate={handleCreate} labelSuggestions={labelSuggestions} />
 
       <h1 className="mt-[26px] text-[22px] leading-7 font-extrabold break-words">{heading}</h1>
 
@@ -222,8 +234,7 @@ function NotesScreen() {
         open={editor.open}
         onOpenChange={(open) => setEditor((current) => ({ ...current, open }))}
         note={editor.note}
-        initialTitle={editor.initialTitle}
-        labelSuggestions={summary.data?.labels.map((item) => item.name) ?? []}
+        labelSuggestions={labelSuggestions}
         onSave={handleSave}
         onDelete={handleDelete}
       />

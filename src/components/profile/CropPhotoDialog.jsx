@@ -47,7 +47,7 @@ export function CropPhotoDialog({ file, onCancel, onApply }) {
  * @returns {JSX.Element}
  */
 function Cropper({ file, onCancel, onApply }) {
-  const [url] = useState(() => URL.createObjectURL(file));
+  const [src, setSrc] = useState(""); // data URL of the photo, once read
   const [image, setImage] = useState(null); // natural size once loaded
   const [view, setView] = useState({ zoom: 1, x: 0, y: 0 });
   const [error, setError] = useState("");
@@ -55,8 +55,24 @@ function Cropper({ file, onCancel, onApply }) {
   const imgRef = useRef(null);
   const drag = useRef(null);
 
-  // Free the object URL when this file is done.
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  // Read the file as a data URL. Each run reads independently and its cleanup only cancels that
+  // read, so React Strict Mode's extra setup/cleanup pass in development cannot break the image
+  // (an object URL created once and revoked in a cleanup was revoked before it could load).
+  useEffect(() => {
+    let cancelled = false;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (!cancelled) setSrc(String(reader.result));
+    };
+    reader.onerror = () => {
+      if (!cancelled) setError("This file couldn't be read. Try another photo.");
+    };
+    reader.readAsDataURL(file);
+    return () => {
+      cancelled = true;
+      if (reader.readyState === FileReader.LOADING) reader.abort();
+    };
+  }, [file]);
 
   /** Reads the natural size and centres the photo. */
   function handleLoad(event) {
@@ -125,20 +141,27 @@ function Cropper({ file, onCancel, onApply }) {
         className="relative mx-auto cursor-grab touch-none overflow-hidden rounded-xl bg-foreground select-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:outline-none active:cursor-grabbing"
         style={{ width: STAGE, height: STAGE }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview drawn to a canvas; next/image cannot be used */}
-        <img
-          ref={imgRef}
-          src={url}
-          alt="Photo being cropped"
-          onLoad={handleLoad}
-          onError={() => setError("This file couldn't be opened as an image.")}
-          draggable={false}
-          className="pointer-events-none absolute top-0 left-0 max-w-none origin-top-left"
-          style={{
-            transform: `translate(${view.x}px, ${view.y}px) scale(${scale})`,
-            visibility: image ? "visible" : "hidden",
-          }}
-        />
+        {src && (
+          // eslint-disable-next-line @next/next/no-img-element -- local file preview drawn to a canvas; next/image cannot be used
+          <img
+            ref={imgRef}
+            src={src}
+            alt="Photo being cropped"
+            onLoad={handleLoad}
+            onError={() => setError("This file couldn't be opened as an image.")}
+            draggable={false}
+            className="pointer-events-none absolute top-0 left-0 max-w-none origin-top-left"
+            style={{
+              transform: `translate(${view.x}px, ${view.y}px) scale(${scale})`,
+              visibility: image ? "visible" : "hidden",
+            }}
+          />
+        )}
+        {!src && !error && (
+          <span className="absolute inset-0 flex items-center justify-center text-sm text-white/80" role="status">
+            Loading photo…
+          </span>
+        )}
         {/* Darken everything outside the circle and outline the circle. */}
         <div
           aria-hidden="true"

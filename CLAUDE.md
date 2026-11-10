@@ -230,6 +230,7 @@ export function NoteForm({ initialValues, onSubmit, submitting }) { ... }
 
 1. **Read before writing.** Check existing pages, components and `lib/api.js` before changing anything.
 2. **Work in small steps.** One page/feature per change. Make one commit per feature with a conventional message (`feat:`, `fix:`, `chore:`, `docs:`, `test:`).
+   Commits are authored only by the repository owner (the local `user.name` / `user.email`). Never add `Co-Authored-By:` trailers, "Generated with" lines or any other AI attribution to commit messages or PR descriptions.
 3. **Ask before** adding a dependency, a shadcn component not on the allowed list, or a page that needs an endpoint not listed in Section 3.
 4. **Before marking work done**, run `npm run build` and fix every error and warning.
 5. **Do not invent requirements.** If something is not in this file or `../docs/project-over.md`, ask.

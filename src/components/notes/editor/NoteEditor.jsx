@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Baseline, EllipsisVertical, ImagePlus, Pin, Redo2, Undo2, UserPlus } from "lucide-react";
+import { Baseline, EllipsisVertical, ImagePlus, Pin, Redo2, Undo2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
-import { LabelInput } from "@/components/notes/LabelInput";
+import { LabelChip } from "@/components/notes/LabelChip";
 import { PeopleAvatars } from "@/components/notes/PeopleAvatars";
 import { ReminderChip } from "@/components/notes/ReminderChip";
 import { ColorMenu } from "@/components/notes/editor/ColorMenu";
 import { FormatBar } from "@/components/notes/editor/FormatBar";
+import { LabelPicker } from "@/components/notes/editor/LabelPicker";
 import { NoteImages } from "@/components/notes/editor/NoteImages";
 import { ReminderMenu } from "@/components/notes/editor/ReminderMenu";
 import { TOOLBAR_TRIGGER_CLASS, ToolbarButton } from "@/components/notes/editor/ToolbarButton";
@@ -54,8 +55,8 @@ function acceptImages(files, slotsLeft) {
  * @param {{ _id: string, name: string }[]} props.sharedWith - People shown as avatars.
  * @param {() => void} props.onOpenCollaborators - Opens the collaborators dialog.
  * @param {{ label: string, onSelect: () => void, destructive?: boolean }[]} props.moreActions - Items for the More menu.
- * @param {string[]} props.labelSuggestions - Labels the user already uses.
- * @param {boolean} [props.startWithLabels=false] - Opens with the label field visible.
+ * @param {string[]} props.labelSuggestions - All of the user's labels, offered in the "Label note" picker.
+ * @param {boolean} [props.startWithLabels=false] - Opens the "Label note" picker right away.
  * @param {string} [props.footer] - Small text above the toolbar, e.g. "Edited 10 Nov 2026".
  * @returns {JSX.Element}
  */
@@ -76,7 +77,9 @@ export function NoteEditor({
 }) {
   const { value: values, set, undo, redo, canUndo, canRedo } = useUndoableState(initialValues);
   const [showFormat, setShowFormat] = useState(false);
-  const [showLabels, setShowLabels] = useState(startWithLabels || initialValues.labels.length > 0);
+  // The labels shortcut opens the picker right away; its anchor ref is read after mount.
+  const [pickerOpen, setPickerOpen] = useState(startWithLabels);
+  const moreRef = useRef(null);
   const contentRef = useRef(null);
   const fileRef = useRef(null);
   const pendingSelection = useRef(null);
@@ -176,17 +179,25 @@ export function NoteEditor({
         className="field-sizing-content block max-h-[50svh] min-h-10 w-full resize-none bg-transparent px-4.5 py-1 text-[15px] leading-[22px] outline-none placeholder:text-placeholder"
       />
 
-      {(showLabels || values.reminderAt || sharedWith.length > 0) && (
-        <div className="flex flex-col gap-2 px-4 pt-2">
-          {showLabels && (
-            <LabelInput value={values.labels} onChange={(labels) => update("labels", labels, true)} suggestions={labelSuggestions} />
-          )}
-          {(values.reminderAt || sharedWith.length > 0) && (
-            <div className="flex flex-wrap items-center gap-2">
-              {values.reminderAt && <ReminderChip value={values.reminderAt} onRemove={() => update("reminderAt", null, true)} />}
-              <PeopleAvatars people={sharedWith} onClick={onOpenCollaborators} />
-            </div>
-          )}
+      {(values.labels.length > 0 || values.reminderAt || sharedWith.length > 0) && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pt-2">
+          {values.labels.map((label) => (
+            <LabelChip key={label}>
+              <button type="button" onClick={() => setPickerOpen(true)} className="truncate" title="Change labels">
+                {label}
+              </button>
+              <button
+                type="button"
+                onClick={() => update("labels", values.labels.filter((item) => item !== label), true)}
+                aria-label={`Remove label ${label}`}
+                className="-mr-1 rounded-full p-0.5 hover:bg-primary/30"
+              >
+                <X className="size-3" aria-hidden="true" />
+              </button>
+            </LabelChip>
+          ))}
+          {values.reminderAt && <ReminderChip value={values.reminderAt} onRemove={() => update("reminderAt", null, true)} />}
+          <PeopleAvatars people={sharedWith} onClick={onOpenCollaborators} />
         </div>
       )}
 
@@ -209,12 +220,14 @@ export function NoteEditor({
         <input ref={fileRef} type="file" accept={IMAGE_TYPES.join(",")} multiple hidden onChange={handleFiles} />
 
         <DropdownMenu>
-          <DropdownMenuTrigger aria-label="More" title="More" className={TOOLBAR_TRIGGER_CLASS}>
-            <EllipsisVertical className="size-[18px]" aria-hidden="true" />
-          </DropdownMenuTrigger>
+          <span ref={moreRef} className="flex">
+            <DropdownMenuTrigger aria-label="More" title="More" className={TOOLBAR_TRIGGER_CLASS}>
+              <EllipsisVertical className="size-[18px]" aria-hidden="true" />
+            </DropdownMenuTrigger>
+          </span>
           <DropdownMenuContent align="start" className="w-48 rounded-2xl border border-border p-2 ring-0">
-            <DropdownMenuItem onClick={() => setShowLabels(true)} className="h-10 rounded-lg px-2 text-[15px]">
-              {showLabels ? "Change labels" : "Add label"}
+            <DropdownMenuItem onClick={() => setPickerOpen(true)} className="h-10 rounded-lg px-2 text-[15px]">
+              {values.labels.length ? "Change labels" : "Add label"}
             </DropdownMenuItem>
             {moreActions.map((action) => (
               <DropdownMenuItem
@@ -245,6 +258,14 @@ export function NoteEditor({
           {closing ? "Saving…" : "Close"}
         </button>
       </div>
+      <LabelPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        anchor={moreRef}
+        allLabels={labelSuggestions}
+        value={values.labels}
+        onChange={(labels) => update("labels", labels, true)}
+      />
     </div>
   );
 }

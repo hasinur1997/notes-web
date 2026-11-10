@@ -172,6 +172,12 @@ function NotesScreen() {
     refreshAll();
   }
 
+  /** Creates a label that no note uses yet. Rethrows so the dialog keeps the text on failure. */
+  async function handleCreateLabel(name) {
+    await withToast(() => notesApi.createLabel(name), `Label "${name}" created.`);
+    summary.reload();
+  }
+
   /** Deletes a label everywhere and clears the filter if it was selected. */
   async function handleDeleteLabel(name) {
     await withToast(() => notesApi.deleteLabel(name), `Label "${name}" deleted.`).catch(() => {});
@@ -294,6 +300,7 @@ function NotesScreen() {
         open={labelsOpen}
         onOpenChange={setLabelsOpen}
         labels={summary.data?.labels ?? []}
+        onCreate={handleCreateLabel}
         onRename={handleRenameLabel}
         onDelete={handleDeleteLabel}
       />

@@ -57,7 +57,8 @@
 | PATCH | `/api/users/me` | Auth — only `name`, `interests` |
 | GET, POST | `/api/notes` | Auth — owned + shared notes; GET filters: `?pinned=`, `?label=`, `?q=`, `?reminder=true` |
 | GET | `/api/notes/summary` | Auth — `{ totalNotes, reminders, labels: [{ name, count }] }` |
-| PATCH, DELETE | `/api/notes/labels/:name` | Auth — rename (`{ name }`) or remove a label on all visible notes |
+| POST | `/api/notes/labels` | Auth — create a label no note uses yet (`{ name }`); 409 if it exists ignoring case |
+| PATCH, DELETE | `/api/notes/labels/:name` | Auth — rename (`{ name }`) or remove a label on all visible notes and the user's created labels |
 | GET, PATCH | `/api/notes/:id` | Owner or collaborator (admin may GET) |
 | DELETE | `/api/notes/:id` | Owner only |
 | POST | `/api/notes/:id/copy` | Owner or collaborator |
@@ -151,7 +152,7 @@ src/
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
 - No animations beyond the components' defaults, no dark-mode work.
-- Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu), `sheet` (mobile sidebar). Ask before adding any other.
+- Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.
 - Keep pages clean, readable and responsive. Use consistent spacing and layout so the app feels like one product.

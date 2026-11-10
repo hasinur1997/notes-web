@@ -185,6 +185,14 @@ export const notesApi = {
   remove: (id) => apiRequest(`/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
 
   /**
+   * Creates a label that no note uses yet.
+   *
+   * @param {string} name - Label name.
+   * @returns {Promise<{ label: { name: string, count: number } }>}
+   */
+  createLabel: (name) => apiRequest("/notes/labels", { method: "POST", body: { name } }),
+
+  /**
    * Renames a label on all of the user's notes.
    *
    * @param {string} from - Current label.

@@ -52,15 +52,14 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
           </li>
         ))}
         {summary && labels.length === 0 && (
-          <li className="px-4 py-2 text-[13px] text-muted-foreground">No labels yet. Add one when editing a note.</li>
+          <li className="px-4 py-2 text-[13px] text-muted-foreground">No labels yet. Create one with Edit labels.</li>
         )}
       </ul>
 
       <button
         type="button"
         onClick={onEditLabels}
-        disabled={labels.length === 0}
-        className={`${ROW} mt-1 h-12 font-bold text-brand-strong hover:bg-brand-soft disabled:opacity-50`}
+        className={`${ROW} mt-1 h-12 font-bold text-brand-strong hover:bg-brand-soft`}
       >
         <Pencil className="size-5 shrink-0" strokeWidth={2} aria-hidden="true" />
         Edit labels

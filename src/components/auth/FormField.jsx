@@ -10,16 +10,20 @@ import { Label } from "@/components/ui/label";
  * @param {string} props.id - Input id; also used to build the error id.
  * @param {string} props.label - Visible label text.
  * @param {string} [props.error] - Error message shown under the input.
+ * @param {React.ReactNode} [props.labelAction] - Optional element shown at the right end of the label row (e.g. "Forgot password?").
  * @returns {JSX.Element}
  */
-export function FormField({ id, label, error, ...inputProps }) {
+export function FormField({ id, label, error, labelAction, ...inputProps }) {
   const errorId = `${id}-error`;
 
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={id} className="text-[13px] leading-5 font-semibold">
-        {label}
-      </Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={id} className="text-[13px] leading-5 font-semibold">
+          {label}
+        </Label>
+        {labelAction}
+      </div>
       <Input
         id={id}
         aria-invalid={error ? true : undefined}

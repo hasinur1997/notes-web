@@ -68,7 +68,14 @@ export function AuthProvider({ children }) {
     return user;
   }, []);
 
-  const value = useMemo(() => ({ ...session, register }), [session, register]);
+  const login = useCallback(async (credentials) => {
+    const { token, user } = await authApi.login(credentials);
+    setToken(token);
+    setSession({ status: "authenticated", user });
+    return user;
+  }, []);
+
+  const value = useMemo(() => ({ ...session, register, login }), [session, register, login]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -76,7 +83,12 @@ export function AuthProvider({ children }) {
 /**
  * Reads auth state and actions.
  *
- * @returns {{ status: AuthStatus, user: object | null, register: (values: { name: string, email: string, password: string }) => Promise<object> }}
+ * @returns {{
+ *   status: AuthStatus,
+ *   user: object | null,
+ *   register: (values: { name: string, email: string, password: string }) => Promise<object>,
+ *   login: (credentials: { email: string, password: string }) => Promise<object>,
+ * }}
  * @throws {Error} If used outside <AuthProvider>.
  */
 export function useAuth() {

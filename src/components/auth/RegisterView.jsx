@@ -2,6 +2,7 @@
 
 import { Lock, Search, Tag } from "lucide-react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
+import { FeatureList } from "@/components/auth/FeatureList";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { useRedirectWhenAuthenticated } from "@/hooks/useRedirectWhenAuthenticated";
 
@@ -24,7 +25,7 @@ export function RegisterView() {
     <AuthLayout
       headline="Start writing in under a minute."
       description="Create a free account to save notes, organise them with labels and pick up where you left off on any device."
-      features={FEATURES}
+      aside={<FeatureList features={FEATURES} />}
     >
       <RegisterForm />
     </AuthLayout>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { AUTH_LINK_CLASS, AUTH_SUBMIT_CLASS, AuthCard } from "@/components/auth/AuthCard";
 import { FormField } from "@/components/auth/FormField";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -59,11 +60,19 @@ export function RegisterForm() {
   }
 
   return (
-    <section className="w-full max-w-[400px] rounded-2xl border border-border bg-card p-8 text-card-foreground shadow-[0_8px_24px_-6px] shadow-foreground/10">
-      <h2 className="text-[22px] leading-7 font-extrabold tracking-[-0.01em]">Create your account</h2>
-      <p className="mt-1 text-[15px] leading-[22px] text-muted-foreground">It takes less than a minute.</p>
-
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+    <AuthCard
+      title="Create your account"
+      subtitle="It takes less than a minute."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className={AUTH_LINK_CLASS}>
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <FormField
           id="name"
           name="name"
@@ -117,18 +126,11 @@ export function RegisterForm() {
         <Button
           type="submit"
           disabled={submitting}
-          className="mt-2 h-[42px] w-full rounded-[10px] text-[15px] font-bold hover:bg-primary/90"
+          className={AUTH_SUBMIT_CLASS}
         >
           {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-[13px] leading-5 text-muted-foreground">
-        Already have an account?{" "}
-        <Link href="/login" className="font-bold text-brand-strong hover:underline">
-          Sign in
-        </Link>
-      </p>
-    </section>
+    </AuthCard>
   );
 }

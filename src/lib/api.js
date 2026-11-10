@@ -111,6 +111,15 @@ export const authApi = {
   register: (values) => apiRequest("/auth/register", { method: "POST", body: values }),
 
   /**
+   * Exchanges email and password for an access token.
+   * A 401 here means wrong credentials, so it never ends a session or redirects.
+   *
+   * @param {{ email: string, password: string }} credentials - Sign-in details.
+   * @returns {Promise<{ token: string, user: object }>} Token and the signed-in user.
+   */
+  login: (credentials) => apiRequest("/auth/login", { method: "POST", body: credentials, redirectOn401: false }),
+
+  /**
    * Loads the signed-in user. Does not redirect on 401 so callers can fall back to signed-out state.
    *
    * @param {AbortSignal} [signal] - Cancels the request.

@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ImagePlus, Pin, Tag } from "lucide-react";
+import { ImageDown, ImagePlus, Pin, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { CollaboratorsDialog } from "@/components/notes/editor/CollaboratorsDialog";
-import { NoteEditor } from "@/components/notes/editor/NoteEditor";
+import { acceptImages, MAX_IMAGES, NoteEditor } from "@/components/notes/editor/NoteEditor";
 import { ToolbarButton } from "@/components/notes/editor/ToolbarButton";
 import { useAuth } from "@/context/AuthContext";
+import { useFileDrop } from "@/hooks/useFileDrop";
 import { EMPTY_DRAFT, normalizeTitleAndContent } from "@/lib/noteDraft";
 
 /** Popups rendered in portals (menus, dialogs, toasts) count as "inside" the composer. */
@@ -15,7 +16,8 @@ const IMAGE_ONLY_TITLE = "Untitled";
 
 /**
  * Inline note composer. Collapsed, it is a "Take a note…" bar with shortcuts for a pinned note,
- * a labelled note or a note with an image. Expanded, it is the full NoteEditor.
+ * a labelled note or a note with an image; dropping images on it starts a note with them.
+ * Expanded, it is the full NoteEditor.
  * Closing (Close, Escape, or clicking outside) saves the note if it has any content.
  * Images and people added before saving are queued and attached right after the note is created.
  *
@@ -95,12 +97,40 @@ export function NoteComposer({ onCreate, labelSuggestions }) {
     valuesRef.current = values;
   }, []);
 
+  /** Queues image files with local previews; they are uploaded after the note is created. */
+  function queueImages(files) {
+    setImages((current) => [
+      ...current,
+      ...files.map((file) => ({ key: `${file.name}-${file.lastModified}-${Math.random()}`, url: URL.createObjectURL(file), file })),
+    ]);
+  }
+
+  // Dropping images on the collapsed bar opens a new note with them attached.
+  const { isDragging: barDragging, dropProps: barDropProps } = useFileDrop(
+    (files) => {
+      const accepted = acceptImages(files, MAX_IMAGES);
+      if (!accepted.length) return;
+      open();
+      queueImages(accepted);
+    },
+    { disabled: Boolean(session) },
+  );
+
   const cardClass =
     "mx-auto w-full max-w-[600px] rounded-2xl border border-border shadow-[0_8px_24px_-10px] shadow-foreground/15";
 
   if (!session) {
     return (
-      <div className={`${cardClass} flex h-16 items-center gap-1 bg-card pr-3 pl-4.5`}>
+      <div className={`${cardClass} relative flex h-16 items-center gap-1 bg-card pr-3 pl-4.5`} {...barDropProps}>
+        {barDragging && (
+          <div
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-strong bg-brand-soft text-[15px] font-bold text-brand-strong"
+            aria-hidden="true"
+          >
+            <ImageDown className="size-5" />
+            Drop images to start a new note
+          </div>
+        )}
         <button
           type="button"
           onClick={() => open()}
@@ -131,12 +161,7 @@ export function NoteComposer({ onCreate, labelSuggestions }) {
         onClose={close}
         closing={closing}
         images={images}
-        onAddImages={(files) =>
-          setImages((current) => [
-            ...current,
-            ...files.map((file) => ({ key: `${file.name}-${file.lastModified}-${Math.random()}`, url: URL.createObjectURL(file), file })),
-          ])
-        }
+        onAddImages={queueImages}
         onRemoveImage={(key) =>
           setImages((current) => {
             const removed = current.find((image) => image.key === key);

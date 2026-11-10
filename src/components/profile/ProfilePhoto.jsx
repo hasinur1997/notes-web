@@ -1,12 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, LoaderCircle } from "lucide-react";
+import { Camera, ImageDown, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CropPhotoDialog } from "@/components/profile/CropPhotoDialog";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { useFileDrop } from "@/hooks/useFileDrop";
 
 /** Must match the API limits. */
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -44,10 +45,8 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
     }
   }
 
-  /** Checks the chosen file and opens the cropper. */
-  function handleFile(event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  /** Checks a chosen or dropped file and opens the cropper. */
+  function chooseFile(file) {
     if (!file) return;
     if (!PHOTO_TYPES.includes(file.type) || file.size > MAX_PHOTO_BYTES) {
       toast.error("Choose a JPEG, PNG, WebP or GIF image up to 5 MB.");
@@ -56,6 +55,14 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
     setPendingFile(file);
   }
 
+  /** File picked with the button or the camera icon. */
+  function handleFile(event) {
+    chooseFile(event.target.files?.[0]);
+    event.target.value = "";
+  }
+
+  const { isDragging, dropProps } = useFileDrop((files) => chooseFile(files[0]), { disabled: busy });
+
   /** Uploads the cropped square. */
   function handleCropped(cropped) {
     setPendingFile(null);
@@ -63,7 +70,16 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
   }
 
   return (
-    <div className="flex items-center gap-5">
+    <div className="relative -m-3 flex items-center gap-5 rounded-2xl p-3" {...dropProps}>
+      {isDragging && (
+        <div
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-strong bg-brand-soft/95 text-[15px] font-bold text-brand-strong"
+          aria-hidden="true"
+        >
+          <ImageDown className="size-5" />
+          Drop a photo to crop and use it
+        </div>
+      )}
       <div className="relative">
         <UserAvatar name={user.name} avatar={user.avatar} size="lg" ringed />
         {busy && (
@@ -106,7 +122,7 @@ export function ProfilePhoto({ user, onUpload, onRemove }) {
             </Button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or GIF, up to 5 MB. You can crop it before saving.</p>
+        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or GIF, up to 5 MB. Drop a photo here or choose one; you can crop it before saving.</p>
       </div>
 
       <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(",")} hidden onChange={handleFile} aria-label="Profile photo file" />

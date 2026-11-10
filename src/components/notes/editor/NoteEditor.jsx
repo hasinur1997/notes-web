@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Baseline, EllipsisVertical, ImagePlus, Pin, Redo2, Undo2, UserPlus, X } from "lucide-react";
+import { Baseline, EllipsisVertical, ImageDown, ImagePlus, Pin, Redo2, Undo2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { LabelChip } from "@/components/notes/LabelChip";
 import { PeopleAvatars } from "@/components/notes/PeopleAvatars";
@@ -13,12 +13,13 @@ import { NoteImages } from "@/components/notes/editor/NoteImages";
 import { ReminderMenu } from "@/components/notes/editor/ReminderMenu";
 import { TOOLBAR_TRIGGER_CLASS, ToolbarButton } from "@/components/notes/editor/ToolbarButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { pastedImages, useFileDrop } from "@/hooks/useFileDrop";
 import { useUndoableState } from "@/hooks/useUndoableState";
 import { applyFormat } from "@/lib/formatText";
 import { noteColorClass } from "@/lib/noteColors";
 
 /** Must match the API limits. */
-const MAX_IMAGES = 5;
+export const MAX_IMAGES = 5;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const SHORTCUT_FORMATS = { b: "bold", i: "italic", u: "underline" };
@@ -30,7 +31,7 @@ const SHORTCUT_FORMATS = { b: "bold", i: "italic", u: "underline" };
  * @param {number} slotsLeft - How many more images the note can take.
  * @returns {File[]} Files that can be uploaded.
  */
-function acceptImages(files, slotsLeft) {
+export function acceptImages(files, slotsLeft) {
   const valid = files.filter((file) => IMAGE_TYPES.includes(file.type) && file.size <= MAX_IMAGE_BYTES);
   if (valid.length < files.length) toast.error("Only JPEG, PNG, WebP or GIF images up to 5 MB can be added.");
   if (valid.length > slotsLeft) toast.error(`A note can have at most ${MAX_IMAGES} images.`);
@@ -43,6 +44,7 @@ function acceptImages(files, slotsLeft) {
  * and the toolbar (Formatting, Colour, Remind me, Collaborator, Add image, More, Undo, Redo, Close).
  * Text fields, labels, colour, pin and reminder are local state with undo/redo; images and
  * collaborators are handled by the parent (queued for new notes, saved at once for existing ones).
+ * Images can be added with the button, by dragging files onto the note, or by pasting them.
  *
  * @param {object} props
  * @param {{ title: string, content: string, labels: string[], pinned: boolean, color: string, reminderAt: string | null }} props.initialValues - Starting values.
@@ -136,18 +138,47 @@ export function NoteEditor({
     }
   }
 
-  /** Validates picked files and hands them to the parent. */
-  function handleFiles(event) {
-    const files = acceptImages([...(event.target.files ?? [])], MAX_IMAGES - images.length);
-    event.target.value = "";
-    if (files.length) onAddImages(files);
+  const slotsLeft = MAX_IMAGES - images.length;
+
+  /** Validates files (picked, dropped or pasted) and hands the accepted ones to the parent. */
+  function addFiles(files) {
+    const accepted = acceptImages(files, slotsLeft);
+    if (accepted.length) onAddImages(accepted);
   }
+
+  /** Files chosen with the "Add image" button. */
+  function handleFiles(event) {
+    addFiles([...(event.target.files ?? [])]);
+    event.target.value = "";
+  }
+
+  /** A pasted screenshot or copied image is added like a dropped one; text pastes are untouched. */
+  function handlePaste(event) {
+    const files = pastedImages(event);
+    if (!files.length) return;
+    event.preventDefault();
+    addFiles(files);
+  }
+
+  const { isDragging, dropProps } = useFileDrop(addFiles);
 
   return (
     <div
-      className={`rounded-2xl transition-colors ${noteColorClass(values.color)}`}
+      className={`relative rounded-2xl transition-colors ${noteColorClass(values.color)}`}
       onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
+      {...dropProps}
     >
+      {isDragging && (
+        <div
+          className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-strong bg-brand-soft/90 text-brand-strong"
+          aria-hidden="true"
+        >
+          <ImageDown className="size-8" />
+          <p className="text-[15px] font-bold">{slotsLeft > 0 ? "Drop images to add" : "This note already has 5 images"}</p>
+          {slotsLeft > 0 && <p className="text-xs">JPEG, PNG, WebP or GIF · up to {slotsLeft} more</p>}
+        </div>
+      )}
       <NoteImages images={images} onRemove={onRemoveImage} />
 
       <div className="flex items-start gap-2 pt-3 pr-3 pl-4.5">

@@ -8,6 +8,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { SearchBox } from "@/components/layout/SearchBox";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { usePreventFileDropNavigation } from "@/hooks/useFileDrop";
 
 /** Matches Tailwind's `lg` breakpoint, where the sidebar sits beside the content. */
 const DESKTOP_QUERY = "(min-width: 1024px)";
@@ -29,6 +30,8 @@ export function AppShell({ renderSidebar, searchValue = "", onSearch, children }
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
   const hasSidebar = Boolean(renderSidebar);
+  // A file dropped outside a drop target must not make the browser leave the app.
+  usePreventFileDropNavigation();
 
   /** Default search on pages without their own: show matching notes. */
   function searchNotes(term) {

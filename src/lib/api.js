@@ -60,7 +60,7 @@ function handleSessionEnded() {
  * @param {string} path - Path below the API root, e.g. `/auth/register`.
  * @param {object} [options]
  * @param {string} [options.method="GET"] - HTTP method.
- * @param {unknown} [options.body] - JSON-serializable request body.
+ * @param {unknown} [options.body] - JSON-serializable request body, or FormData for uploads.
  * @param {AbortSignal} [options.signal] - Cancels the request.
  * @param {boolean} [options.redirectOn401=true] - End the session (and go to /login) when an authenticated request gets 401.
  * @returns {Promise<any>} Parsed JSON response, or null for empty responses.
@@ -72,8 +72,10 @@ export async function apiRequest(path, { method = "GET", body, signal, redirectO
   }
 
   const token = getToken();
+  const isForm = body instanceof FormData;
   const headers = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData sets its own multipart Content-Type (with the boundary).
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
@@ -81,7 +83,7 @@ export async function apiRequest(path, { method = "GET", body, signal, redirectO
     response = await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || isForm ? body : JSON.stringify(body),
       signal,
     });
   } catch (err) {
@@ -143,7 +145,7 @@ export const notesApi = {
   /**
    * Lists notes, newest first.
    *
-   * @param {{ page?: number, limit?: number, pinned?: boolean, label?: string, q?: string }} params - Filters and paging.
+   * @param {{ page?: number, limit?: number, pinned?: boolean, label?: string, q?: string, reminder?: boolean }} params - Filters and paging.
    * @param {AbortSignal} [signal] - Cancels the request.
    * @returns {Promise<{ data: object[], meta: { page: number, limit: number, total: number, totalPages: number } }>}
    */
@@ -199,4 +201,55 @@ export const notesApi = {
    * @returns {Promise<null>}
    */
   deleteLabel: (name) => apiRequest(`/notes/labels/${encodeURIComponent(name)}`, { method: "DELETE" }),
+
+  /**
+   * Copies a note into a new note owned by the user.
+   *
+   * @param {string} id - Note id.
+   * @returns {Promise<{ note: object }>}
+   */
+  copy: (id) => apiRequest(`/notes/${encodeURIComponent(id)}/copy`, { method: "POST" }),
+
+  /**
+   * Shares a note with a registered user (owner only).
+   *
+   * @param {string} id - Note id.
+   * @param {string} email - The person's email.
+   * @returns {Promise<{ note: object }>}
+   */
+  addCollaborator: (id, email) =>
+    apiRequest(`/notes/${encodeURIComponent(id)}/collaborators`, { method: "POST", body: { email } }),
+
+  /**
+   * Removes a collaborator (owner), or leaves the note (collaborator removing themselves).
+   *
+   * @param {string} id - Note id.
+   * @param {string} userId - Person to remove.
+   * @returns {Promise<null>}
+   */
+  removeCollaborator: (id, userId) =>
+    apiRequest(`/notes/${encodeURIComponent(id)}/collaborators/${encodeURIComponent(userId)}`, { method: "DELETE" }),
+
+  /**
+   * Uploads one image to a note.
+   *
+   * @param {string} id - Note id.
+   * @param {File} file - JPEG, PNG, WebP or GIF up to 5 MB.
+   * @returns {Promise<{ note: object }>}
+   */
+  uploadImage: (id, file) => {
+    const form = new FormData();
+    form.append("image", file);
+    return apiRequest(`/notes/${encodeURIComponent(id)}/images`, { method: "POST", body: form });
+  },
+
+  /**
+   * Removes an image from a note.
+   *
+   * @param {string} id - Note id.
+   * @param {string} imageId - Image id.
+   * @returns {Promise<{ note: object }>}
+   */
+  removeImage: (id, imageId) =>
+    apiRequest(`/notes/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, { method: "DELETE" }),
 };

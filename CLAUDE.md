@@ -55,10 +55,16 @@
 | POST | `/api/auth/login` | Public, rate-limited |
 | GET | `/api/auth/me` | Auth |
 | PATCH | `/api/users/me` | Auth — only `name`, `interests` |
-| GET, POST | `/api/notes` | Auth — GET filters: `?pinned=true\|false`, `?label=`, `?q=` |
-| GET | `/api/notes/summary` | Auth — `{ totalNotes, labels: [{ name, count }] }` |
-| PATCH, DELETE | `/api/notes/labels/:name` | Auth — rename (`{ name }`) or remove a label on all own notes |
-| GET, PATCH, DELETE | `/api/notes/:id` | Owner (admin may GET) |
+| GET, POST | `/api/notes` | Auth — owned + shared notes; GET filters: `?pinned=`, `?label=`, `?q=`, `?reminder=true` |
+| GET | `/api/notes/summary` | Auth — `{ totalNotes, reminders, labels: [{ name, count }] }` |
+| PATCH, DELETE | `/api/notes/labels/:name` | Auth — rename (`{ name }`) or remove a label on all visible notes |
+| GET, PATCH | `/api/notes/:id` | Owner or collaborator (admin may GET) |
+| DELETE | `/api/notes/:id` | Owner only |
+| POST | `/api/notes/:id/copy` | Owner or collaborator |
+| POST, DELETE | `/api/notes/:id/collaborators[/:userId]` | Owner (add/remove), or a collaborator removing themselves |
+| POST, DELETE | `/api/notes/:id/images[/:imageId]` | Owner or collaborator — multipart `image` ≤ 5 MB; 503 if uploads are not configured |
+
+Notes include `color`, `reminderAt`, `images`, `owner` / `collaborators` as `{ _id, name, email }`, and `isOwner`. `content` is Markdown, rendered only with `lib/markdown.jsx` (React elements, never HTML strings).
 | GET, POST | `/api/admin/users` | Admin |
 | GET, PATCH, DELETE | `/api/admin/users/:id` | Admin |
 | GET | `/api/admin/notes?owner=` | Admin |
@@ -121,6 +127,7 @@ src/
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register*/Login* forms and views, ...
 │   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
 │   ├── notes/                    # NotesView, NoteCard, NoteGrid, NoteComposer, NoteEditorDialog, EditLabelsDialog, ...
+│   │   └── editor/               # NoteEditor (shared by composer + dialog), toolbar, FormatBar, ColorMenu, ReminderMenu, CollaboratorsDialog, NoteImages
 │   └── BrandLogo, Pager, AuthGuard, NoteForm, UserForm, ...
 ├── context/AuthContext.jsx
 ├── hooks/                        # reusable stateful logic (useNotes, usePagination, ...)
@@ -180,7 +187,7 @@ Every coding agent and contributor follows these rules for every change. If a ru
 The API enforces security; the client must never weaken it:
 
 - All requests go through `lib/api.js`. Never call `fetch` directly or build API URLs by hand in components.
-- Never render untrusted content as HTML. No `dangerouslySetInnerHTML`. Rely on React's escaping.
+- Never render untrusted content as HTML. No `dangerouslySetInnerHTML`. Rely on React's escaping. Note Markdown goes through `lib/markdown.jsx`, which only creates React elements.
 - Only follow internal redirect targets (paths starting with a single `/`). Never redirect to a URL taken from the query string without checking it.
 - Never log tokens or user data to the console. Never put tokens in URLs.
 - Clear the token and all cached user data on logout and on any 401.

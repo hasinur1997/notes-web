@@ -42,6 +42,14 @@
   --color-placeholder: var(--placeholder);
   --color-brand-soft: var(--brand-soft);
   --color-brand-strong: var(--brand-strong);
+  --color-note-default: var(--note-default);
+  --color-note-amber: var(--note-amber);
+  --color-note-coral: var(--note-coral);
+  --color-note-rose: var(--note-rose);
+  --color-note-lavender: var(--note-lavender);
+  --color-note-sky: var(--note-sky);
+  --color-note-mint: var(--note-mint);
+  --color-note-sand: var(--note-sand);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -74,6 +82,15 @@
   --placeholder: #757575;
   --brand-soft: #fdebcb;
   --brand-strong: #8f4e0a;
+  /* Note background colours (soft tints that keep dark text readable) */
+  --note-default: #ffffff;
+  --note-amber: #fdebcb;
+  --note-coral: #fbdccc;
+  --note-rose: #f8d9de;
+  --note-lavender: #e7e0f7;
+  --note-sky: #d9e9f6;
+  --note-mint: #d8eedf;
+  --note-sand: #eee5d6;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

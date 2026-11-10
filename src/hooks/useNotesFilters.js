@@ -4,13 +4,13 @@ import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 /**
- * Reads and updates the notes filters kept in the URL (`?label=`, `?q=`, `?page=`),
+ * Reads and updates the notes filters kept in the URL (`?view=reminders`, `?label=`, `?q=`, `?page=`),
  * so filters survive reloads and can be shared or bookmarked.
  * Must be used inside a <Suspense> boundary (useSearchParams).
  *
  * @returns {{
- *   label: string, q: string, page: number,
- *   setFilters: (changes: { label?: string | null, q?: string | null, page?: number | null }) => void,
+ *   view: "" | "reminders", label: string, q: string, page: number,
+ *   setFilters: (changes: { view?: string | null, label?: string | null, q?: string | null, page?: number | null }) => void,
  * }}
  */
 export function useNotesFilters() {
@@ -21,6 +21,7 @@ export function useNotesFilters() {
   const filters = useMemo(() => {
     const page = Number.parseInt(searchParams.get("page") ?? "1", 10);
     return {
+      view: searchParams.get("view") === "reminders" ? "reminders" : "",
       label: searchParams.get("label") ?? "",
       q: searchParams.get("q") ?? "",
       page: Number.isFinite(page) && page > 0 ? page : 1,

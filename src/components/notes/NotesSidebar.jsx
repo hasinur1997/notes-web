@@ -1,19 +1,21 @@
-import { File, Pencil, Tag } from "lucide-react";
+import { Bell, File, Pencil, Tag } from "lucide-react";
 
 const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15px] transition-colors";
 
 /**
- * Sidebar navigation: "All notes" with the total, each label with its count, and "Edit labels".
+ * Sidebar navigation: "All notes" and "Reminders" with counts, each label with its count, and "Edit labels".
  * The active entry is highlighted with the amber pill.
  *
  * @param {object} props
- * @param {{ totalNotes: number, labels: { name: string, count: number }[] } | undefined} props.summary - Counts from the API (undefined while loading).
- * @param {string} props.activeLabel - Selected label, or "" for all notes.
- * @param {(label: string) => void} props.onSelectLabel - Called with a label name, or "" for all notes.
+ * @param {{ totalNotes: number, reminders: number, labels: { name: string, count: number }[] } | undefined} props.summary - Counts from the API (undefined while loading).
+ * @param {"" | "reminders"} props.activeView - Selected view.
+ * @param {string} props.activeLabel - Selected label, or "" for none.
+ * @param {(view: "" | "reminders") => void} props.onSelectView - Shows all notes ("") or notes with reminders.
+ * @param {(label: string) => void} props.onSelectLabel - Called with a label name.
  * @param {() => void} props.onEditLabels - Opens the label editor.
  * @returns {JSX.Element}
  */
-export function NotesSidebar({ summary, activeLabel, onSelectLabel, onEditLabels }) {
+export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, onSelectLabel, onEditLabels }) {
   const labels = summary?.labels ?? [];
 
   return (
@@ -22,9 +24,17 @@ export function NotesSidebar({ summary, activeLabel, onSelectLabel, onEditLabels
         icon={File}
         label="All notes"
         count={summary?.totalNotes}
-        active={!activeLabel}
-        onClick={() => onSelectLabel("")}
+        active={!activeLabel && !activeView}
+        onClick={() => onSelectView("")}
         className="h-11"
+      />
+      <SidebarItem
+        icon={Bell}
+        label="Reminders"
+        count={summary?.reminders}
+        active={activeView === "reminders"}
+        onClick={() => onSelectView("reminders")}
+        className="mt-1 h-11"
       />
 
       <p className="mt-7 px-4 text-[13px] leading-[18px] font-semibold text-muted-foreground">Labels</p>

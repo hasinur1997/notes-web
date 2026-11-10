@@ -1,154 +1,165 @@
 "use client";
 
-import { useState } from "react";
-import { Pin, Trash2 } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { LabelInput } from "@/components/notes/LabelInput";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { CollaboratorsDialog } from "@/components/notes/editor/CollaboratorsDialog";
+import { NoteEditor } from "@/components/notes/editor/NoteEditor";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/context/AuthContext";
+import { formatDate } from "@/lib/format";
+import { changedFields, draftFromNote, normalizeTitleAndContent } from "@/lib/noteDraft";
 
 /**
- * Builds the editor's starting values from the note.
- *
- * @param {{ title: string, content: string, labels: string[], pinned: boolean } | null} note - Note being edited.
- * @returns {{ title: string, content: string, labels: string[], pinned: boolean }}
- */
-function initialValues(note) {
-  return {
-    title: note?.title ?? "",
-    content: note?.content ?? "",
-    labels: note?.labels ?? [],
-    pinned: note?.pinned ?? false,
-  };
-}
-
-/**
- * Dialog for editing an existing note: title, content, labels and pin, plus delete.
- * New notes are written in the inline composer instead. Remount it (change its `key`) to start from fresh values.
+ * Opens an existing note in the full editor. Images and sharing changes are saved immediately;
+ * text, labels, colour, pin and reminder are saved when the dialog closes (Close, Escape or
+ * clicking outside), sending only the fields that changed.
+ * Remount it (change its `key`) for each note.
  *
  * @param {object} props
  * @param {boolean} props.open - Whether the dialog is shown.
  * @param {(open: boolean) => void} props.onOpenChange - Opens or closes it.
- * @param {object | null} props.note - Note to edit (null only while the dialog is closed).
+ * @param {object | null} props.note - The note being edited (with owner, collaborators, images, isOwner).
  * @param {string[]} props.labelSuggestions - Labels the user already uses.
- * @param {(values: { title: string, content: string, labels: string[], pinned: boolean }) => Promise<void>} props.onSave - Saves; rejects to keep the dialog open.
- * @param {(note: object) => Promise<void>} props.onDelete - Deletes the note.
+ * @param {object} props.actions - API actions provided by the page:
+ *   save(note, changes), remove(note), copy(note), leave(note), addImages(note, files) → note,
+ *   removeImage(note, imageId) → note, addCollaborator(note, email) → note, removeCollaborator(note, person).
  * @returns {JSX.Element}
  */
-export function NoteEditorDialog({ open, onOpenChange, note, labelSuggestions, onSave, onDelete }) {
-  const [values, setValues] = useState(() => initialValues(note));
-  const [saving, setSaving] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const canSave = values.title.trim().length > 0 && !saving;
+export function NoteEditorDialog({ open, onOpenChange, note: initialNote, labelSuggestions, actions }) {
+  const { user } = useAuth();
+  const [note, setNote] = useState(initialNote);
+  const [uploads, setUploads] = useState([]);
+  const [closing, setClosing] = useState(false);
+  const [peopleOpen, setPeopleOpen] = useState(false);
+  const [confirm, setConfirm] = useState(null);
+  // Starting values never change for this dialog instance (it is remounted per note).
+  const [initialDraft] = useState(() => (initialNote ? draftFromNote(initialNote) : null));
+  const valuesRef = useRef(null);
 
-  /** Updates one field. */
-  function update(field, value) {
-    setValues((current) => ({ ...current, [field]: value }));
+  const handleChange = useCallback((values) => {
+    valuesRef.current = values;
+  }, []);
+
+  /** Saves changed fields, then closes. Stays open if saving fails. */
+  async function saveAndClose() {
+    if (closing || !note) return;
+    const values = valuesRef.current ?? initialDraft;
+    const text = normalizeTitleAndContent(values, initialDraft.title);
+    const changes = changedFields(initialDraft, { ...values, ...text });
+    if (Object.keys(changes).length) {
+      setClosing(true);
+      try {
+        await actions.save(note, changes);
+      } catch {
+        setClosing(false);
+        return;
+      }
+      setClosing(false);
+    }
+    onOpenChange(false);
   }
 
-  /** Saves and closes; stays open (with the toast from the caller) if saving fails. */
-  async function handleSubmit(event) {
-    event.preventDefault();
-    if (!canSave) return;
-    setSaving(true);
-    try {
-      await onSave({ ...values, title: values.title.trim() });
-      onOpenChange(false);
-    } catch {
-      // The caller already showed the error; keep the user's input.
-    } finally {
-      setSaving(false);
+  /** Uploads images one by one, showing local previews until each finishes. */
+  async function addImages(files) {
+    const pending = files.map((file) => ({
+      key: `pending-${file.name}-${Math.random()}`,
+      url: URL.createObjectURL(file),
+      pending: true,
+    }));
+    setUploads((current) => [...current, ...pending]);
+    for (const [index, file] of files.entries()) {
+      const updated = await actions.addImages(note, [file]);
+      URL.revokeObjectURL(pending[index].url);
+      setUploads((current) => current.filter((item) => item.key !== pending[index].key));
+      if (updated) setNote(updated);
     }
   }
 
+  if (!note) return <Dialog open={false} />;
+
+  const images = [...note.images.map((image) => ({ key: image._id, url: image.url })), ...uploads];
+  const sharedWith = note.isOwner
+    ? note.collaborators
+    : [note.owner, ...note.collaborators.filter((person) => person._id !== user?._id)];
+
+  const moreActions = [
+    { label: "Make a copy", onSelect: () => actions.copy(note).then(() => onOpenChange(false)) },
+    note.isOwner
+      ? { label: "Delete note", destructive: true, onSelect: () => setConfirm("delete") }
+      : { label: "Leave note", destructive: true, onSelect: () => setConfirm("leave") },
+  ];
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-0 rounded-2xl p-0 sm:max-w-lg" showCloseButton={false}>
-        <form onSubmit={handleSubmit}>
-          <div className="flex items-center justify-between gap-3 px-6 pt-5">
-            <DialogTitle className="text-[13px] font-semibold text-muted-foreground">
-              Edit note
-            </DialogTitle>
-            <button
-              type="button"
-              onClick={() => update("pinned", !values.pinned)}
-              aria-pressed={values.pinned}
-              aria-label={values.pinned ? "Unpin note" : "Pin note"}
-              className="flex size-8 items-center justify-center rounded-full hover:bg-brand-soft"
-            >
-              <Pin
-                className={`size-[18px] rotate-45 text-brand-strong ${values.pinned ? "fill-primary" : ""}`}
-                aria-hidden="true"
-              />
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-3 px-6 pt-2 pb-6">
-            <input
-              value={values.title}
-              onChange={(event) => update("title", event.target.value)}
-              placeholder="Title"
-              aria-label="Title"
-              required
-              maxLength={200}
-              autoFocus
-              className="w-full bg-transparent text-[19px] leading-7 font-bold outline-none placeholder:text-placeholder"
-            />
-            <Textarea
-              value={values.content}
-              onChange={(event) => update("content", event.target.value)}
-              placeholder="Write your note…"
-              aria-label="Note content"
-              maxLength={20000}
-              className="max-h-[50svh] min-h-32 rounded-[10px] border-border bg-card px-3 py-2.5 text-[15px] leading-[22px] md:text-[15px]"
-            />
-            <LabelInput
-              value={values.labels}
-              onChange={(labels) => update("labels", labels)}
-              suggestions={labelSuggestions}
-            />
-          </div>
-
-          <DialogFooter className="mx-0 mb-0 items-center rounded-b-2xl bg-background px-6 py-4 sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setConfirmOpen(true)}
-              className="h-10 gap-1.5 rounded-[10px] px-3 text-[15px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-              Delete
-            </Button>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="h-10 rounded-[10px] px-4 text-[15px]"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!canSave} className="h-10 rounded-[10px] px-5 text-[15px] font-bold">
-                {saving ? "Saving…" : "Save"}
-              </Button>
-            </div>
-          </DialogFooter>
-        </form>
+    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : saveAndClose())}>
+      <DialogContent className="gap-0 overflow-hidden rounded-2xl border border-border p-0 sm:max-w-xl" showCloseButton={false}>
+        <DialogTitle className="sr-only">Edit note</DialogTitle>
+        <NoteEditor
+          initialValues={initialDraft}
+          onChange={handleChange}
+          onClose={saveAndClose}
+          closing={closing}
+          images={images}
+          onAddImages={addImages}
+          onRemoveImage={async (key) => {
+            const updated = await actions.removeImage(note, key);
+            if (updated) setNote(updated);
+          }}
+          sharedWith={sharedWith}
+          onOpenCollaborators={() => setPeopleOpen(true)}
+          moreActions={moreActions}
+          labelSuggestions={labelSuggestions}
+          footer={`Edited ${formatDate(note.updatedAt)}`}
+        />
       </DialogContent>
 
-      {note && (
-        <ConfirmDialog
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
-          title="Delete this note?"
-          description={`"${note.title}" will be deleted permanently. This can't be undone.`}
-          onConfirm={async () => {
-            await onDelete(note);
-            onOpenChange(false);
-          }}
-        />
-      )}
+      <CollaboratorsDialog
+        open={peopleOpen}
+        onOpenChange={setPeopleOpen}
+        owner={note.owner}
+        collaborators={note.collaborators}
+        canManage={note.isOwner}
+        currentUserId={user?._id}
+        onAdd={async (email) => {
+          const updated = await actions.addCollaborator(note, email);
+          setNote(updated);
+        }}
+        onRemove={async (person) => {
+          if (person._id === user?._id && !note.isOwner) {
+            setPeopleOpen(false);
+            setConfirm("leave");
+            return;
+          }
+          await actions.removeCollaborator(note, person);
+          setNote((current) => ({
+            ...current,
+            collaborators: current.collaborators.filter((p) => p._id !== person._id),
+          }));
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirm === "delete"}
+        onOpenChange={(next) => !next && setConfirm(null)}
+        title="Delete this note?"
+        description={`"${note.title}" and its images will be deleted permanently${
+          note.collaborators.length ? ", also for the people it's shared with" : ""
+        }. This can't be undone.`}
+        onConfirm={async () => {
+          await actions.remove(note);
+          onOpenChange(false);
+        }}
+      />
+      <ConfirmDialog
+        open={confirm === "leave"}
+        onOpenChange={(next) => !next && setConfirm(null)}
+        title="Leave this note?"
+        description={`You'll lose access to "${note.title}". The owner can share it with you again.`}
+        confirmLabel="Leave"
+        onConfirm={async () => {
+          await actions.leave(note);
+          onOpenChange(false);
+        }}
+      />
     </Dialog>
   );
 }

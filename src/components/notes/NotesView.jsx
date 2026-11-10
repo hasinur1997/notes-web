@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { AppShell } from "@/components/layout/AppShell";
@@ -12,14 +12,16 @@ import { NoteGrid } from "@/components/notes/NoteGrid";
 import { NotesSidebar } from "@/components/notes/NotesSidebar";
 import { Pager } from "@/components/Pager";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useNotesFilters } from "@/hooks/useNotesFilters";
+import { useReminderAlerts } from "@/hooks/useReminderAlerts";
 import { notesApi } from "@/lib/api";
 
 /** Notes per page in the "Others" section (fills 3 rows of 4 columns). */
 const PAGE_SIZE = 12;
-/** Pinned notes are shown together on the first page, up to the API maximum. */
-const PINNED_LIMIT = 50;
+/** Pinned notes, and notes with reminders for alerts, are loaded together up to the API maximum. */
+const BULK_LIMIT = 50;
 
 /**
  * /notes page: signed-in only.
@@ -35,112 +37,152 @@ export function NotesView() {
 }
 
 /**
- * Notes screen: sidebar with labels, composer, pinned and other notes, pagination,
- * and the dialogs for editing notes and labels. Filters (label, search, page) live in the URL.
+ * Runs an API call and shows its error as a toast. Rethrows so callers can keep their UI open.
+ *
+ * @template T
+ * @param {() => Promise<T>} call - The API call.
+ * @param {string} [success] - Success toast text.
+ * @returns {Promise<T>}
+ */
+async function withToast(call, success) {
+  try {
+    const result = await call();
+    if (success) toast.success(success);
+    return result;
+  } catch (err) {
+    toast.error(err.message);
+    throw err;
+  }
+}
+
+/**
+ * Notes screen: sidebar (all notes, reminders, labels), composer, pinned and other notes,
+ * pagination, and the dialogs for editing notes and labels. Filters live in the URL.
  *
  * @returns {JSX.Element}
  */
 function NotesScreen() {
-  const { label, q, page, setFilters } = useNotesFilters();
+  const { user } = useAuth();
+  const { view, label, q, page, setFilters } = useNotesFilters();
   const [editor, setEditor] = useState({ open: false, note: null, key: 0 });
   const [labelsOpen, setLabelsOpen] = useState(false);
+  const reminderView = view === "reminders";
 
-  const filterKey = new URLSearchParams({ label, q }).toString();
+  const filterKey = new URLSearchParams({ view, label, q }).toString();
+  const listFilters = { label, q, reminder: reminderView || undefined };
   const summary = useApiQuery("summary", (signal) => notesApi.summary(signal));
   const pinned = useApiQuery(`pinned?${filterKey}`, (signal) =>
-    notesApi.list({ pinned: true, label, q, limit: PINNED_LIMIT }, signal),
+    notesApi.list({ ...listFilters, pinned: true, limit: BULK_LIMIT }, signal),
   );
   const others = useApiQuery(`others?${filterKey}&page=${page}`, (signal) =>
-    notesApi.list({ pinned: false, label, q, page, limit: PAGE_SIZE }, signal),
+    notesApi.list({ ...listFilters, pinned: false, page, limit: PAGE_SIZE }, signal),
   );
+  const reminders = useApiQuery("reminders", (signal) => notesApi.list({ reminder: true, limit: BULK_LIMIT }, signal));
+  const reminderNotes = useMemo(() => reminders.data?.data ?? [], [reminders.data]);
+  useReminderAlerts(reminderNotes);
 
   /** Reloads every query after a change. */
   const refreshAll = useCallback(() => {
     summary.reload();
     pinned.reload();
     others.reload();
-  }, [summary, pinned, others]);
+    reminders.reload();
+  }, [summary, pinned, others, reminders]);
 
-  /** Opens an existing note in the edit dialog. */
+  /** Opens an existing note in the editor dialog. */
   const openEditor = useCallback((note) => {
     setEditor((current) => ({ open: true, note, key: current.key + 1 }));
   }, []);
 
-  /** Creates a note from the inline composer. Rethrows so the composer stays open on failure. */
-  async function handleCreate(values) {
-    try {
-      await notesApi.create(values);
-      toast.success("Note added.");
-      refreshAll();
-    } catch (err) {
-      toast.error(err.message);
-      throw err;
+  /** Creates a note from the composer, then attaches queued people and images. */
+  async function handleCreate(values, { images, emails }) {
+    const { note } = await withToast(() => notesApi.create(values));
+    const failures = [];
+    for (const email of emails) {
+      await notesApi.addCollaborator(note._id, email).catch((err) => failures.push(`${email}: ${err.message}`));
     }
+    for (const file of images) {
+      await notesApi.uploadImage(note._id, file).catch((err) => failures.push(`${file.name}: ${err.message}`));
+    }
+    if (failures.length) toast.error(`Note added, but some items failed. ${failures.join(" · ")}`);
+    else toast.success("Note added.");
+    refreshAll();
   }
 
-  /** Saves changes from the edit dialog. Rethrows so the dialog stays open on failure. */
-  async function handleSave(values) {
-    try {
-      await notesApi.update(editor.note._id, values);
-      toast.success("Note saved.");
+  /** Actions for the editor dialog. Each shows a toast on failure and rethrows. */
+  const editorActions = {
+    save: async (note, changes) => {
+      await withToast(() => notesApi.update(note._id, changes), "Note saved.");
       refreshAll();
-    } catch (err) {
-      toast.error(err.message);
-      throw err;
-    }
-  }
-
-  /** Deletes a note, stepping back a page if it was the last one on this page. */
-  async function handleDelete(note) {
-    try {
-      await notesApi.remove(note._id);
-      toast.success("Note deleted.");
+    },
+    remove: async (note) => {
+      await withToast(() => notesApi.remove(note._id), "Note deleted.");
       if (page > 1 && others.data?.data.length === 1 && !note.pinned) setFilters({ page: page - 1 });
       refreshAll();
-    } catch (err) {
-      toast.error(err.message);
-    }
-  }
+    },
+    copy: async (note) => {
+      await withToast(() => notesApi.copy(note._id), "Copy created.");
+      refreshAll();
+    },
+    leave: async (note) => {
+      await withToast(() => notesApi.removeCollaborator(note._id, user._id), "You left the note.");
+      refreshAll();
+    },
+    addImages: async (note, [file]) => {
+      try {
+        const { note: updated } = await withToast(() => notesApi.uploadImage(note._id, file));
+        refreshAll();
+        return updated;
+      } catch {
+        return null;
+      }
+    },
+    removeImage: async (note, imageId) => {
+      try {
+        const { note: updated } = await withToast(() => notesApi.removeImage(note._id, imageId), "Image removed.");
+        refreshAll();
+        return updated;
+      } catch {
+        return null;
+      }
+    },
+    addCollaborator: async (note, email) => {
+      const { note: updated } = await withToast(() => notesApi.addCollaborator(note._id, email), `Shared with ${email}.`);
+      refreshAll();
+      return updated;
+    },
+    removeCollaborator: async (note, person) => {
+      await withToast(() => notesApi.removeCollaborator(note._id, person._id), `Removed ${person.name}.`);
+      refreshAll();
+    },
+  };
 
   /** Pins or unpins a note from its card. */
   async function handleTogglePin(note) {
-    try {
-      await notesApi.update(note._id, { pinned: !note.pinned });
-      toast.success(note.pinned ? "Note unpinned." : "Note pinned.");
-      refreshAll();
-    } catch (err) {
-      toast.error(err.message);
-    }
+    await withToast(() => notesApi.update(note._id, { pinned: !note.pinned }), note.pinned ? "Note unpinned." : "Note pinned.").catch(
+      () => {},
+    );
+    refreshAll();
   }
 
   /** Renames a label everywhere and keeps the filter on it if it was selected. */
   async function handleRenameLabel(from, to) {
-    try {
-      await notesApi.renameLabel(from, to);
-      toast.success(`Label renamed to "${to}".`);
-      if (label === from) setFilters({ label: to });
-      refreshAll();
-    } catch (err) {
-      toast.error(err.message);
-      throw err;
-    }
+    await withToast(() => notesApi.renameLabel(from, to), `Label renamed to "${to}".`);
+    if (label === from) setFilters({ label: to });
+    refreshAll();
   }
 
   /** Deletes a label everywhere and clears the filter if it was selected. */
   async function handleDeleteLabel(name) {
-    try {
-      await notesApi.deleteLabel(name);
-      toast.success(`Label "${name}" deleted.`);
-      if (label === name) setFilters({ label: null });
-      refreshAll();
-    } catch (err) {
-      toast.error(err.message);
-    }
+    await withToast(() => notesApi.deleteLabel(name), `Label "${name}" deleted.`).catch(() => {});
+    if (label === name) setFilters({ label: null });
+    refreshAll();
   }
 
-  /** Builds a link to another page of results, keeping label and search. */
+  /** Builds a link to another page of results, keeping the view, label and search. */
   const hrefFor = (target) => {
     const params = new URLSearchParams();
+    if (view) params.set("view", view);
     if (label) params.set("label", label);
     if (q) params.set("q", q);
     if (target > 1) params.set("page", String(target));
@@ -148,14 +190,21 @@ function NotesScreen() {
     return query ? `/notes?${query}` : "/notes";
   };
 
-  const heading = label || (q ? `Results for "${q}"` : "All notes");
+  const heading = reminderView ? "Reminders" : label || (q ? `Results for "${q}"` : "All notes");
   const labelSuggestions = summary.data?.labels.map((item) => item.name) ?? [];
   const showPinned = page === 1 && (pinned.data?.data.length ?? 0) > 0;
   const loading = pinned.loading || others.loading;
   const error = pinned.error || others.error;
   const isEmpty = !loading && !error && !showPinned && (others.data?.data.length ?? 0) === 0;
+  const emptyMessage = reminderView
+    ? "No reminders. Use the bell in a note to set one."
+    : q || label
+      ? "No notes match. Try another search or label."
+      : "No notes yet. Use “Take a note…” above to write your first one.";
 
-  const renderNote = (note) => <NoteCard note={note} onOpen={openEditor} onTogglePin={handleTogglePin} />;
+  const renderNote = (note) => (
+    <NoteCard note={note} onOpen={openEditor} onTogglePin={handleTogglePin} currentUserId={user?._id} />
+  );
 
   return (
     <AppShell
@@ -164,9 +213,14 @@ function NotesScreen() {
       renderSidebar={(close) => (
         <NotesSidebar
           summary={summary.data}
+          activeView={view}
           activeLabel={label}
+          onSelectView={(next) => {
+            setFilters({ view: next || null, label: null });
+            close();
+          }}
           onSelectLabel={(name) => {
-            setFilters({ label: name || null });
+            setFilters({ label: name, view: null });
             close();
           }}
           onEditLabels={() => {
@@ -197,9 +251,7 @@ function NotesScreen() {
 
       {isEmpty && (
         <div className="mt-6 rounded-2xl border border-dashed border-border p-10 text-center text-[15px] text-muted-foreground">
-          {q || label
-            ? "No notes match. Try another search or label."
-            : "No notes yet. Use “Take a note…” above to write your first one."}
+          {emptyMessage}
         </div>
       )}
 
@@ -235,8 +287,7 @@ function NotesScreen() {
         onOpenChange={(open) => setEditor((current) => ({ ...current, open }))}
         note={editor.note}
         labelSuggestions={labelSuggestions}
-        onSave={handleSave}
-        onDelete={handleDelete}
+        actions={editorActions}
       />
 
       <EditLabelsDialog

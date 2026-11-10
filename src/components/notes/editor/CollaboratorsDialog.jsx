@@ -120,7 +120,7 @@ export function CollaboratorsDialog({ open, onOpenChange, owner, collaborators, 
 function PersonRow({ person, note, action }) {
   return (
     <li className="flex items-center gap-3">
-      <UserAvatar name={person.name} />
+      <UserAvatar name={person.name} avatar={person.avatar} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[15px] font-bold">{person.name}</p>
         <p className="truncate text-[13px] text-muted-foreground">

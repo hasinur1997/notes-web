@@ -35,7 +35,7 @@ export function UserMenu() {
         aria-label="Account menu"
         className="rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <UserAvatar name={user?.name} ringed />
+        <UserAvatar name={user?.name} avatar={user?.avatar} ringed />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
@@ -43,7 +43,7 @@ export function UserMenu() {
         className="w-[260px] rounded-2xl border border-border p-2 shadow-[0_8px_24px_-6px] shadow-foreground/15 ring-0"
       >
         <div className="flex items-center gap-2.5 p-2 pb-4">
-          <UserAvatar name={user?.name} />
+          <UserAvatar name={user?.name} avatar={user?.avatar} />
           <div className="min-w-0">
             <p className="truncate text-base leading-6 font-bold">{user?.name}</p>
             <p className="truncate text-[13px] leading-[18px] text-muted-foreground">{user?.email}</p>

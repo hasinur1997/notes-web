@@ -1,0 +1,113 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { Camera, LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { UserAvatar } from "@/components/layout/UserAvatar";
+import { Button } from "@/components/ui/button";
+
+/** Must match the API limits. */
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+/**
+ * Profile photo with upload, change and remove. Files are checked before uploading
+ * (type and size); the server verifies the actual image again.
+ *
+ * @param {object} props
+ * @param {{ name: string, avatar?: { url: string } | null }} props.user - The signed-in user.
+ * @param {(file: File) => Promise<object>} props.onUpload - Uploads a new photo.
+ * @param {() => Promise<object>} props.onRemove - Removes the photo.
+ * @returns {JSX.Element}
+ */
+export function ProfilePhoto({ user, onUpload, onRemove }) {
+  const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const fileRef = useRef(null);
+  const hasPhoto = Boolean(user.avatar?.url);
+
+  /** Runs an upload or removal with a toast. */
+  async function run(action, success) {
+    setBusy(true);
+    try {
+      await action();
+      toast.success(success);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Checks the chosen file and uploads it. */
+  function handleFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!PHOTO_TYPES.includes(file.type) || file.size > MAX_PHOTO_BYTES) {
+      toast.error("Choose a JPEG, PNG, WebP or GIF image up to 5 MB.");
+      return;
+    }
+    run(() => onUpload(file), "Profile photo updated.");
+  }
+
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative">
+        <UserAvatar name={user.name} avatar={user.avatar} size="lg" ringed />
+        {busy && (
+          <span className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/40" role="status">
+            <LoaderCircle className="size-6 animate-spin text-white" aria-label="Saving photo" />
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          aria-label={hasPhoto ? "Change profile photo" : "Upload profile photo"}
+          title={hasPhoto ? "Change photo" : "Upload photo"}
+          className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-card bg-primary text-foreground hover:bg-primary/90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-60"
+        >
+          <Camera className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            className="h-9 rounded-[10px] px-3.5 text-sm font-bold"
+          >
+            {hasPhoto ? "Change photo" : "Upload photo"}
+          </Button>
+          {hasPhoto && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmOpen(true)}
+              disabled={busy}
+              className="h-9 rounded-[10px] px-3.5 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              Remove
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or GIF, up to 5 MB. Square photos look best.</p>
+      </div>
+
+      <input ref={fileRef} type="file" accept={PHOTO_TYPES.join(",")} hidden onChange={handleFile} aria-label="Profile photo file" />
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Remove your profile photo?"
+        description="Your initials will be shown instead. You can upload a new photo at any time."
+        confirmLabel="Remove"
+        onConfirm={() => run(onRemove, "Profile photo removed.")}
+      />
+    </div>
+  );
+}

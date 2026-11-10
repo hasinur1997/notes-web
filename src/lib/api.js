@@ -128,6 +128,22 @@ export const authApi = {
    * @returns {Promise<{ user: object }>} The current user.
    */
   me: (signal) => apiRequest("/auth/me", { signal, redirectOn401: false }),
+
+  /**
+   * Asks for a password reset email. The reply is the same whether or not the account exists.
+   *
+   * @param {string} email - Account email.
+   * @returns {Promise<{ message: string }>}
+   */
+  forgotPassword: (email) => apiRequest("/auth/forgot-password", { method: "POST", body: { email }, redirectOn401: false }),
+
+  /**
+   * Sets a new password with the token from the emailed link.
+   *
+   * @param {{ email: string, token: string, password: string }} values - Link values and new password.
+   * @returns {Promise<{ message: string }>}
+   */
+  resetPassword: (values) => apiRequest("/auth/reset-password", { method: "POST", body: values, redirectOn401: false }),
 };
 
 /** Builds a query string from defined, non-empty values only. */
@@ -271,4 +287,23 @@ export const usersApi = {
    * @returns {Promise<{ user: object }>} The updated user.
    */
   updateMe: (values) => apiRequest("/users/me", { method: "PATCH", body: values }),
+
+  /**
+   * Sets the profile photo.
+   *
+   * @param {File} file - JPEG, PNG, WebP or GIF up to 5 MB.
+   * @returns {Promise<{ user: object }>} The updated user.
+   */
+  uploadAvatar: (file) => {
+    const form = new FormData();
+    form.append("image", file);
+    return apiRequest("/users/me/avatar", { method: "POST", body: form });
+  },
+
+  /**
+   * Removes the profile photo.
+   *
+   * @returns {Promise<{ user: object }>} The updated user.
+   */
+  removeAvatar: () => apiRequest("/users/me/avatar", { method: "DELETE" }),
 };

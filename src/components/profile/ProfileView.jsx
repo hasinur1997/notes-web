@@ -7,10 +7,12 @@ import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { FormField } from "@/components/auth/FormField";
 import { AppShell } from "@/components/layout/AppShell";
+import { UserAvatar } from "@/components/layout/UserAvatar";
 import { InterestsInput, MAX_INTERESTS } from "@/components/profile/InterestsInput";
+import { ProfilePhoto } from "@/components/profile/ProfilePhoto";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { formatDate, getInitials } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 
 const CARD = "rounded-2xl border border-border bg-card p-6 shadow-[0_8px_24px_-12px] shadow-foreground/15 sm:p-8";
 const SECTION_TITLE = "text-[17px] leading-6 font-extrabold";
@@ -31,13 +33,13 @@ export function ProfileView() {
 }
 
 /**
- * Profile screen: personal details (name and interests are editable; email is read-only)
- * and account information with sign out.
+ * Profile screen: profile photo, personal details (name and interests are editable; email is
+ * read-only) and account information with sign out.
  *
  * @returns {JSX.Element}
  */
 function ProfileScreen() {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, uploadAvatar, removeAvatar, logout } = useAuth();
 
   return (
     <div className="mx-auto flex w-full max-w-[600px] flex-col gap-6">
@@ -52,6 +54,15 @@ function ProfileScreen() {
         <h1 className="mt-3 text-[22px] leading-7 font-extrabold">Profile</h1>
         <p className="mt-1 text-[15px] text-muted-foreground">Manage how you appear and what you&apos;re interested in.</p>
       </div>
+
+      <section className={CARD} aria-labelledby="photo-heading">
+        <h2 id="photo-heading" className={SECTION_TITLE}>
+          Profile photo
+        </h2>
+        <div className="mt-4">
+          <ProfilePhoto user={user} onUpload={uploadAvatar} onRemove={removeAvatar} />
+        </div>
+      </section>
 
       {/* Remount the form when the saved user changes, so it always starts from the latest values. */}
       <PersonalInfoForm key={`${user.name}|${user.interests?.join(",")}`} user={user} onSave={updateProfile} />
@@ -131,12 +142,7 @@ function PersonalInfoForm({ user, onSave }) {
   return (
     <section className={CARD} aria-labelledby="personal-heading">
       <div className="flex items-center gap-4">
-        <span
-          className="flex size-16 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-brand-soft text-[22px] font-extrabold text-brand-strong"
-          aria-hidden="true"
-        >
-          {getInitials(cleanName || user.name)}
-        </span>
+        <UserAvatar name={cleanName || user.name} avatar={user.avatar} ringed />
         <div className="min-w-0">
           <h2 id="personal-heading" className={`${SECTION_TITLE} truncate`}>
             {cleanName || user.name}

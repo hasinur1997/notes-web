@@ -54,7 +54,10 @@
 | POST | `/api/auth/register` | Public — role is always forced to `user` |
 | POST | `/api/auth/login` | Public, rate-limited |
 | GET | `/api/auth/me` | Auth |
+| POST | `/api/auth/forgot-password` | Public — `{ email }`; same reply whether or not the account exists |
+| POST | `/api/auth/reset-password` | Public — `{ email, token, password }` from the emailed link; 400 `INVALID_RESET_TOKEN` if wrong/used/expired |
 | PATCH | `/api/users/me` | Auth — only `name`, `interests` |
+| POST, DELETE | `/api/users/me/avatar` | Auth — profile photo (multipart `image`, ≤ 5 MB); users and people on notes include `avatar: { url } \| null` |
 | GET, POST | `/api/notes` | Auth — owned + shared notes; GET filters: `?pinned=`, `?label=`, `?q=`, `?reminder=true` |
 | GET | `/api/notes/summary` | Auth — `{ totalNotes, reminders, labels: [{ name, count }] }` |
 | POST | `/api/notes/labels` | Auth — create a label no note uses yet (`{ name }`); 409 if it exists ignoring case |
@@ -92,7 +95,7 @@ Every list endpoint is paginated: `?page=` (starts at 1) and `?limit=` (default 
 | Status | Frontend handling |
 |---|---|
 | 400 | Show `error.message` in a toast |
-| 401 | Clear token, redirect to `/login` |
+| 401 | Clear token, redirect to `/login` (also after a password reset elsewhere: `TOKEN_REVOKED`) |
 | 403 | Show `error.message` in a toast |
 | 404 | Show a not-found state |
 | 409 | Show `error.message` (e.g. duplicate email) |
@@ -118,16 +121,16 @@ src/
 ├── app/
 │   ├── layout.jsx                # AuthProvider, nav, <Toaster />
 │   ├── page.jsx                  # redirect to /notes or /login
-│   ├── login/ register/ notes/ profile/ posts/
+│   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ posts/
 │   ├── users/[id]/posts/page.jsx # Scenario 2
 │   └── admin/
 │       ├── layout.jsx            # admin guard
 │       ├── users/ notes/ interests/
 ├── components/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
-│   ├── auth/                     # AuthLayout, AuthCard, FormField, Register*/Login* forms and views, ...
+│   ├── auth/                     # AuthLayout, AuthCard, FormField, Register/Login/ForgotPassword/ResetPassword views, ...
 │   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
-│   ├── profile/                  # ProfileView (name, interests, account), InterestsInput
+│   ├── profile/                  # ProfileView (photo, name, interests, account), ProfilePhoto, InterestsInput
 │   ├── notes/                    # NotesView, NoteCard, NoteGrid, NoteComposer, NoteEditorDialog, EditLabelsDialog, ...
 │   │   └── editor/               # NoteEditor (shared by composer + dialog), toolbar, FormatBar, ColorMenu, ReminderMenu, CollaboratorsDialog, NoteImages
 │   └── BrandLogo, Pager, AuthGuard, NoteForm, UserForm, ...

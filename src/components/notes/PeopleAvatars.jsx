@@ -1,4 +1,4 @@
-import { getInitials } from "@/lib/format";
+import { UserAvatar } from "@/components/layout/UserAvatar";
 
 const MAX_SHOWN = 4;
 
@@ -19,12 +19,8 @@ export function PeopleAvatars({ people, onClick }) {
   const content = (
     <span className="flex -space-x-1.5">
       {shown.map((person) => (
-        <span
-          key={person._id}
-          title={person.email ? `${person.name} (${person.email})` : person.name}
-          className="flex size-7 items-center justify-center rounded-full border-2 border-card bg-brand-soft text-[11px] font-extrabold text-brand-strong"
-        >
-          {getInitials(person.name)}
+        <span key={person._id} title={person.email ? `${person.name} (${person.email})` : person.name}>
+          <UserAvatar name={person.name} avatar={person.avatar} size="sm" className="border-2 border-card" />
         </span>
       ))}
       {extra > 0 && (

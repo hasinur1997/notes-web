@@ -11,8 +11,6 @@ import { useAuth } from "@/context/AuthContext";
 
 const EMPTY_FORM = { email: "", password: "" };
 const AFTER_LOGIN_PATH = "/notes";
-// The API has no password-reset flow yet; the link explains that instead of leading nowhere.
-const PASSWORD_RESET_UNAVAILABLE = "Password reset isn't available yet. Please contact your administrator.";
 
 /**
  * "Sign in" card: email and password.
@@ -91,13 +89,9 @@ export function LoginForm() {
           value={values.password}
           onChange={handleChange}
           labelAction={
-            <button
-              type="button"
-              onClick={() => toast.info(PASSWORD_RESET_UNAVAILABLE)}
-              className={`text-[13px] leading-5 ${AUTH_LINK_CLASS}`}
-            >
+            <Link href="/forgot-password" className={`text-[13px] leading-5 ${AUTH_LINK_CLASS}`}>
               Forgot password?
-            </button>
+            </Link>
           }
         />
 

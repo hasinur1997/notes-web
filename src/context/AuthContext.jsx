@@ -81,6 +81,18 @@ export function AuthProvider({ children }) {
     return user;
   }, []);
 
+  const uploadAvatar = useCallback(async (file) => {
+    const { user } = await usersApi.uploadAvatar(file);
+    setSession({ status: "authenticated", user });
+    return user;
+  }, []);
+
+  const removeAvatar = useCallback(async () => {
+    const { user } = await usersApi.removeAvatar();
+    setSession({ status: "authenticated", user });
+    return user;
+  }, []);
+
   const logout = useCallback(() => {
     clearToken();
     setSession(ANONYMOUS);
@@ -88,8 +100,8 @@ export function AuthProvider({ children }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ ...session, register, login, logout, updateProfile }),
-    [session, register, login, logout, updateProfile],
+    () => ({ ...session, register, login, logout, updateProfile, uploadAvatar, removeAvatar }),
+    [session, register, login, logout, updateProfile, uploadAvatar, removeAvatar],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -105,6 +117,8 @@ export function AuthProvider({ children }) {
  *   login: (credentials: { email: string, password: string }) => Promise<object>,
  *   logout: () => void,
  *   updateProfile: (values: { name?: string, interests?: string[] }) => Promise<object>,
+ *   uploadAvatar: (file: File) => Promise<object>,
+ *   removeAvatar: () => Promise<object>,
  * }}
  * @throws {Error} If used outside <AuthProvider>.
  */

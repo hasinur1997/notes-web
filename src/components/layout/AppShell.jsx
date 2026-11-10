@@ -53,8 +53,12 @@ export function AppShell({ renderSidebar, searchValue, onSearch, children }) {
       </header>
 
       <div className="flex">
+        {/* Pinned below the 64px header: the sidebar stays in place while the notes scroll. */}
         {desktopOpen && (
-          <aside className="hidden w-[248px] shrink-0 px-4 pt-6 pb-8 lg:block" aria-label="Notes navigation">
+          <aside
+            className="sticky top-16 hidden h-[calc(100svh-4rem)] w-[248px] shrink-0 self-start px-4 pt-6 pb-4 lg:flex lg:flex-col"
+            aria-label="Notes navigation"
+          >
             {renderSidebar(() => {})}
           </aside>
         )}
@@ -62,7 +66,7 @@ export function AppShell({ renderSidebar, searchValue, onSearch, children }) {
       </div>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[280px] bg-background px-4 pt-16">
+        <SheetContent side="left" className="w-[280px] bg-background px-4 pt-16 pb-4">
           <SheetTitle className="sr-only">Notes navigation</SheetTitle>
           {renderSidebar(() => setMobileOpen(false))}
         </SheetContent>

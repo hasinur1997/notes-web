@@ -19,14 +19,15 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
   const labels = summary?.labels ?? [];
 
   return (
-    <nav className="flex flex-col">
+    // Fills the sidebar's height; only the label list scrolls when it does not fit.
+    <nav className="flex min-h-0 flex-1 flex-col">
       <SidebarItem
         icon={File}
         label="All notes"
         count={summary?.totalNotes}
         active={!activeLabel && !activeView}
         onClick={() => onSelectView("")}
-        className="h-11"
+        className="h-11 shrink-0"
       />
       <SidebarItem
         icon={Bell}
@@ -34,11 +35,14 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
         count={summary?.reminders}
         active={activeView === "reminders"}
         onClick={() => onSelectView("reminders")}
-        className="mt-1 h-11"
+        className="mt-1 h-11 shrink-0"
       />
 
-      <p className="mt-7 px-4 text-[13px] leading-[18px] font-semibold text-muted-foreground">Labels</p>
-      <ul className="mt-2.5 flex flex-col">
+      <p className="mt-7 shrink-0 px-4 text-[13px] leading-[18px] font-semibold text-muted-foreground">Labels</p>
+      <ul
+        className="mt-2.5 flex min-h-0 shrink flex-col overflow-y-auto overscroll-contain [scrollbar-width:thin]"
+        aria-label="Labels"
+      >
         {labels.map((label) => (
           <li key={label.name}>
             <SidebarItem
@@ -59,7 +63,7 @@ export function NotesSidebar({ summary, activeView, activeLabel, onSelectView, o
       <button
         type="button"
         onClick={onEditLabels}
-        className={`${ROW} mt-1 h-12 font-bold text-brand-strong hover:bg-brand-soft`}
+        className={`${ROW} mt-1 h-12 shrink-0 font-bold text-brand-strong hover:bg-brand-soft`}
       >
         <Pencil className="size-5 shrink-0" strokeWidth={2} aria-hidden="true" />
         Edit labels

@@ -55,7 +55,9 @@
 | POST | `/api/auth/login` | Public, rate-limited |
 | GET | `/api/auth/me` | Auth |
 | PATCH | `/api/users/me` | Auth — only `name`, `interests` |
-| GET, POST | `/api/notes` | Auth |
+| GET, POST | `/api/notes` | Auth — GET filters: `?pinned=true\|false`, `?label=`, `?q=` |
+| GET | `/api/notes/summary` | Auth — `{ totalNotes, labels: [{ name, count }] }` |
+| PATCH, DELETE | `/api/notes/labels/:name` | Auth — rename (`{ name }`) or remove a label on all own notes |
 | GET, PATCH, DELETE | `/api/notes/:id` | Owner (admin may GET) |
 | GET, POST | `/api/admin/users` | Admin |
 | GET, PATCH, DELETE | `/api/admin/users/:id` | Admin |
@@ -117,6 +119,8 @@ src/
 ├── components/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register*/Login* forms and views, ...
+│   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
+│   ├── notes/                    # NotesView, NoteCard, NoteGrid, NoteComposer, NoteEditorDialog, EditLabelsDialog, ...
 │   └── BrandLogo, Pager, AuthGuard, NoteForm, UserForm, ...
 ├── context/AuthContext.jsx
 ├── hooks/                        # reusable stateful logic (useNotes, usePagination, ...)
@@ -140,7 +144,7 @@ src/
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
 - No animations beyond the components' defaults, no dark-mode work.
-- Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`. Ask before adding any other.
+- Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu), `sheet` (mobile sidebar). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.
 - Keep pages clean, readable and responsive. Use consistent spacing and layout so the app feels like one product.

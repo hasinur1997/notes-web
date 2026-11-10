@@ -127,3 +127,76 @@ export const authApi = {
    */
   me: (signal) => apiRequest("/auth/me", { signal, redirectOn401: false }),
 };
+
+/** Builds a query string from defined, non-empty values only. */
+function toQueryString(params) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") search.set(key, String(value));
+  }
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+/** Notes endpoints. Every call acts on the signed-in user's own notes. */
+export const notesApi = {
+  /**
+   * Lists notes, newest first.
+   *
+   * @param {{ page?: number, limit?: number, pinned?: boolean, label?: string, q?: string }} params - Filters and paging.
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ data: object[], meta: { page: number, limit: number, total: number, totalPages: number } }>}
+   */
+  list: (params, signal) => apiRequest(`/notes${toQueryString(params)}`, { signal }),
+
+  /**
+   * Loads the sidebar summary: total notes and label counts.
+   *
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ totalNotes: number, labels: { name: string, count: number }[] }>}
+   */
+  summary: (signal) => apiRequest("/notes/summary", { signal }),
+
+  /**
+   * Creates a note.
+   *
+   * @param {{ title: string, content?: string, labels?: string[], pinned?: boolean }} values - Note fields.
+   * @returns {Promise<{ note: object }>}
+   */
+  create: (values) => apiRequest("/notes", { method: "POST", body: values }),
+
+  /**
+   * Updates some fields of a note.
+   *
+   * @param {string} id - Note id.
+   * @param {{ title?: string, content?: string, labels?: string[], pinned?: boolean }} values - Fields to change.
+   * @returns {Promise<{ note: object }>}
+   */
+  update: (id, values) => apiRequest(`/notes/${encodeURIComponent(id)}`, { method: "PATCH", body: values }),
+
+  /**
+   * Deletes a note.
+   *
+   * @param {string} id - Note id.
+   * @returns {Promise<null>}
+   */
+  remove: (id) => apiRequest(`/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
+  /**
+   * Renames a label on all of the user's notes.
+   *
+   * @param {string} from - Current label.
+   * @param {string} to - New label.
+   * @returns {Promise<{ label: string, notesUpdated: number }>}
+   */
+  renameLabel: (from, to) =>
+    apiRequest(`/notes/labels/${encodeURIComponent(from)}`, { method: "PATCH", body: { name: to } }),
+
+  /**
+   * Removes a label from all of the user's notes (the notes stay).
+   *
+   * @param {string} name - Label to remove.
+   * @returns {Promise<null>}
+   */
+  deleteLabel: (name) => apiRequest(`/notes/labels/${encodeURIComponent(name)}`, { method: "DELETE" }),
+};

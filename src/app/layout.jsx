@@ -24,7 +24,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${nunito.variable} h-full antialiased`}>
       <body className="min-h-full">
         <AuthProvider>{children}</AuthProvider>
-        <Toaster theme="light" position="top-center" richColors />
+        <Toaster theme="light" position="bottom-center" richColors />
       </body>
     </html>
   );

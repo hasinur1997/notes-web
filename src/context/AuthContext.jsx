@@ -75,7 +75,13 @@ export function AuthProvider({ children }) {
     return user;
   }, []);
 
-  const value = useMemo(() => ({ ...session, register, login }), [session, register, login]);
+  const logout = useCallback(() => {
+    clearToken();
+    setSession(ANONYMOUS);
+    router.replace(LOGIN_PATH);
+  }, [router]);
+
+  const value = useMemo(() => ({ ...session, register, login, logout }), [session, register, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -88,6 +94,7 @@ export function AuthProvider({ children }) {
  *   user: object | null,
  *   register: (values: { name: string, email: string, password: string }) => Promise<object>,
  *   login: (credentials: { email: string, password: string }) => Promise<object>,
+ *   logout: () => void,
  * }}
  * @throws {Error} If used outside <AuthProvider>.
  */

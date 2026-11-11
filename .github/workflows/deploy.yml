@@ -51,12 +51,13 @@ jobs:
           fi
           npm run build
 
-      # Only what `next start` needs at runtime; .next/cache is build-time only.
+      # Only what `next start` needs at runtime. Source code, docs and screenshots stay out, and so do
+      # .next/cache and .next/trace (build-time cache and timing logs).
       - name: Package release
         run: |
           files=(.next package.json package-lock.json next.config.mjs server.js)
           if [ -d public ]; then files+=(public); fi
-          tar -czf release.tgz --exclude=.next/cache "${files[@]}"
+          tar -czf release.tgz --exclude=.next/cache --exclude=.next/trace "${files[@]}"
           ls -lh release.tgz
 
       - name: Upload release

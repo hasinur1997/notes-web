@@ -199,7 +199,7 @@ src/
 Production runs on cPanel (Phusion Passenger) and is deployed by GitHub Actions (`.github/workflows/deploy.yml`) on every push to `main`:
 
 1. **Build** on GitHub: `npm ci`, `npm run lint` and `npm run build` with `NEXT_PUBLIC_API_URL` from the `production` environment's variables. Shared hosting has too little memory to build there.
-2. **Deploy:** the built app (`.next`, `package.json`, `server.js`, …) is sent over SSH, dependencies are installed with `npm install --omit=dev`, and Passenger restarts. Passenger starts the app through `server.js`.
+2. **Deploy:** only what the server runs (the built `.next` without its build cache, `package.json`, `package-lock.json`, `next.config.mjs` and `server.js`) is sent over SSH; source code, docs and screenshots never reach the server. Dependencies are installed with `npm install --omit=dev`, and Passenger restarts. Passenger starts the app through `server.js`.
 
 **One-time setup:** create the app in cPanel **Setup Node.js App** (startup file `server.js`). On GitHub, in **Settings → Environments → `production`**, add the variable `NEXT_PUBLIC_API_URL` and the secrets `CPANEL_SSH_KEY`, `CPANEL_KNOWN_HOSTS`, `CPANEL_HOST`, `CPANEL_PORT`, `CPANEL_USERNAME` and `CPANEL_DEPLOY_PATH`.
 

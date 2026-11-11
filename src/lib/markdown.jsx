@@ -155,10 +155,18 @@ export function Markdown({ text, className = "", highlight = null }) {
  * @returns {string} Plain text.
  */
 export function markdownToPlainText(text = "") {
-  return text
-    .replace(/^#{1,2}\s+/gm, "")
-    .replace(/^\s*(?:[-*]|\d+[.)])\s+/gm, "")
-    .replace(/\*\*|\+\+|~~|[*_]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    text
+      .replace(/^#{1,2}\s+/gm, "")
+      .replace(/^\s*(?:[-*]|\d+[.)])\s+/gm, "")
+      // Only paired markers are formatting (the same rules as renderInline); a lone "_" or "*",
+      // as in "_id" or "5 * 3", is part of the text and stays.
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\+\+(.+?)\+\+/g, "$1")
+      .replace(/~~(.+?)~~/g, "$1")
+      .replace(/\*(?!\s)(.+?)(?<!\s)\*/g, "$1")
+      .replace(/_(?!\s)(.+?)(?<!\s)_/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }

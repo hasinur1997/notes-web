@@ -18,9 +18,10 @@ const PRELOAD_MARGIN = "400px 0px";
  * @param {Error | null} props.error - Error from the last attempt.
  * @param {() => void} props.onLoadMore - Loads the next page.
  * @param {string} props.endMessage - Shown once everything is loaded.
+ * @param {string} [props.itemName="notes"] - What is being loaded, for the messages (e.g. "posts").
  * @returns {JSX.Element}
  */
-export function InfiniteScrollTrigger({ hasMore, loading, error, onLoadMore, endMessage }) {
+export function InfiniteScrollTrigger({ hasMore, loading, error, onLoadMore, endMessage, itemName = "notes" }) {
   const ref = useRef(null);
   const onLoadMoreRef = useRef(onLoadMore);
 
@@ -46,12 +47,12 @@ export function InfiniteScrollTrigger({ hasMore, loading, error, onLoadMore, end
       {loading && (
         <p role="status" className="flex items-center gap-2 animate-in fade-in-0 duration-200">
           <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          Loading more notes…
+          Loading more {itemName}…
         </p>
       )}
       {!loading && error && (
         <div role="alert" className="flex flex-col items-center gap-2">
-          <p>Couldn&apos;t load more notes. {error.message}</p>
+          <p>Couldn&apos;t load more {itemName}. {error.message}</p>
           <Button variant="outline" onClick={onLoadMore} className="h-10 rounded-[10px] px-4 text-[15px]">
             Try again
           </Button>

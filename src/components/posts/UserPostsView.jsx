@@ -1,10 +1,11 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useParams } from "next/navigation";
 import { PublicShell } from "@/components/layout/PublicShell";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { PostList } from "@/components/posts/PostList";
-import { useApiQuery } from "@/hooks/useApiQuery";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { postsApi } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
@@ -13,16 +14,20 @@ const NOT_FOUND = 404;
 
 /**
  * `/users/[id]/posts`: a person's public profile (name, photo, interests) and their posts.
- * Both come from one API call (one aggregation pipeline with $lookup on the server).
+ * Both come from one API call per batch (one aggregation pipeline with $lookup on the server);
+ * more posts load as the reader scrolls.
  *
  * @returns {JSX.Element}
  */
 export function UserPostsView() {
   const { id } = useParams();
-  const searchParams = useSearchParams();
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const query = useApiQuery(`user-posts:${id}&page=${page}`, (signal) => postsApi.listByUser(id, { page, limit: PAGE_SIZE }, signal));
-  const person = query.data?.user;
+  // Every batch carries the profile; the first one is kept for the header.
+  const [person, setPerson] = useState(null);
+  const query = useInfiniteList(`user-posts:${id}&limit=${PAGE_SIZE}`, async (page, signal) => {
+    const result = await postsApi.listByUser(id, { page, limit: PAGE_SIZE }, signal);
+    if (page === 1) setPerson(result.user);
+    return result;
+  });
   const missing = query.error?.status === NOT_FOUND;
 
   return (
@@ -33,7 +38,7 @@ export function UserPostsView() {
         </div>
       ) : (
         <>
-          {person && (
+          {person && query.data && (
             <section className="mb-8 flex flex-wrap items-center gap-4" aria-label="Profile">
               <UserAvatar name={person.name} avatar={person.avatar} size="lg" />
               <div className="min-w-0">
@@ -53,12 +58,7 @@ export function UserPostsView() {
               </div>
             </section>
           )}
-          <PostList
-            query={query}
-            showAuthor={false}
-            hrefFor={(target) => (target > 1 ? `/users/${id}/posts?page=${target}` : `/users/${id}/posts`)}
-            emptyMessage="No posts yet."
-          />
+          <PostList query={query} showAuthor={false} emptyMessage="No posts yet." />
         </>
       )}
     </PublicShell>

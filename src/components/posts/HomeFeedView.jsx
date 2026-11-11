@@ -1,27 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { PublicShell } from "@/components/layout/PublicShell";
 import { PostList } from "@/components/posts/PostList";
 import { useAuth } from "@/context/AuthContext";
-import { useApiQuery } from "@/hooks/useApiQuery";
+import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { postsApi } from "@/lib/api";
 
-/** Posts per page (fills 1, 2 or 3 columns evenly). */
+/** Posts loaded per batch (fills 1, 2 or 3 columns evenly). */
 const PAGE_SIZE = 12;
 
 /**
  * `/`: the public feed. Everyone (signed in or not) sees every post, newest first, with a short
- * description and "Read more". The page number lives in the URL.
+ * description and "Read more". More posts load as the reader scrolls.
  *
  * @returns {JSX.Element}
  */
 export function HomeFeedView() {
   const { status } = useAuth();
-  const searchParams = useSearchParams();
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const posts = useApiQuery(`feed&page=${page}`, (signal) => postsApi.list({ page, limit: PAGE_SIZE }, signal));
+  const posts = useInfiniteList(`feed&limit=${PAGE_SIZE}`, (page, signal) => postsApi.list({ page, limit: PAGE_SIZE }, signal));
 
   return (
     <PublicShell>
@@ -39,7 +36,7 @@ export function HomeFeedView() {
           </Link>
         )}
       </div>
-      <PostList query={posts} hrefFor={(target) => (target > 1 ? `/?page=${target}` : "/")} emptyMessage="No posts yet." />
+      <PostList query={posts} emptyMessage="No posts yet." />
     </PublicShell>
   );
 }

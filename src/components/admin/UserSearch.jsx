@@ -12,9 +12,17 @@ const DEBOUNCE_MS = 300;
  * @param {string} props.value - Current search (from the URL).
  * @param {(term: string) => void} props.onSearch - Called with the trimmed text ("" clears).
  * @param {string} [props.className] - Extra classes for the wrapper.
+ * @param {string} [props.placeholder] - Placeholder text.
+ * @param {string} [props.label] - Accessible label for the field.
  * @returns {JSX.Element}
  */
-export function UserSearch({ value, onSearch, className = "" }) {
+export function UserSearch({
+  value,
+  onSearch,
+  className = "",
+  placeholder = "Search by name or email",
+  label = "Search people by name or email",
+}) {
   const [text, setText] = useState(value);
   const [synced, setSynced] = useState(value);
 
@@ -39,8 +47,8 @@ export function UserSearch({ value, onSearch, className = "" }) {
         value={text}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => event.key === "Escape" && setText("")}
-        placeholder="Search by name or email"
-        aria-label="Search people by name or email"
+        placeholder={placeholder}
+        aria-label={label}
         maxLength={100}
         className="h-11 w-full rounded-xl border border-border bg-card pr-10 pl-10 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus [&::-webkit-search-cancel-button]:hidden"
       />

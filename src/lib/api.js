@@ -342,6 +342,15 @@ export const adminApi = {
   listUsers: (params, signal) => apiRequest(`/admin/users${toQueryString(params)}`, { signal }),
 
   /**
+   * Users grouped by interest, largest group first (one aggregate on the server).
+   *
+   * @param {{ interest?: string, page?: number, limit?: number }} params
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<{ data: { interest: string, count: number, users: { _id: string, name: string, email: string }[] }[], meta: object }>}
+   */
+  listInterestGroups: (params, signal) => apiRequest(`/admin/users/grouped-by-interest${toQueryString(params)}`, { signal }),
+
+  /**
    * Loads one user.
    *
    * @param {string} id - User id.

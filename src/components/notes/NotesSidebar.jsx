@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, File, NotebookText, Pencil, Tag, UsersRound } from "lucide-react";
+import { Bell, File, Hash, NotebookText, Pencil, Tag, UsersRound } from "lucide-react";
 
 const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15px] transition-colors";
 
@@ -14,7 +14,7 @@ const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15
  * @param {(view: "" | "reminders") => void} props.onSelectView - Shows all notes ("") or notes with reminders.
  * @param {(label: string) => void} props.onSelectLabel - Called with a label name.
  * @param {() => void} [props.onEditLabels] - Opens the label editor (the button is hidden without it).
- * @param {boolean} [props.showAdmin=false] - Adds the admin menus (Users, User's Notes) after Reminders.
+ * @param {boolean} [props.showAdmin=false] - Adds the admin menus (Users, User's Notes, Interests) after Reminders.
  * @param {"users" | "user-notes" | null} [props.activeAdmin=null] - Highlights an admin menu (on admin pages).
  * @param {() => void} [props.onNavigate] - Called after an admin menu is chosen (closes the mobile sheet).
  * @returns {JSX.Element}
@@ -56,6 +56,7 @@ export function NotesSidebar({
         <>
           <AdminLink href="/admin/users" icon={UsersRound} label="Users" active={activeAdmin === "users"} onNavigate={onNavigate} />
           <AdminLink href="/admin/user-notes" icon={NotebookText} label="User's Notes" active={activeAdmin === "user-notes"} onNavigate={onNavigate} />
+          <AdminLink href="/admin/interests" icon={Hash} label="Interests" active={activeAdmin === "interests"} onNavigate={onNavigate} />
         </>
       )}
       <p className="mt-7 shrink-0 px-4 text-[13px] leading-[18px] font-semibold text-muted-foreground">Labels</p>

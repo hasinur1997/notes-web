@@ -13,7 +13,7 @@ import { notesApi } from "@/lib/api";
  * page (the admin menus highlighted). Choosing a notes entry in the sidebar opens the notes page.
  *
  * @param {object} props
- * @param {"users" | "user-notes"} props.active - The admin menu to highlight.
+ * @param {"users" | "user-notes" | "interests"} props.active - The admin menu to highlight.
  * @param {React.ReactNode} props.children - Page content.
  * @returns {JSX.Element}
  */

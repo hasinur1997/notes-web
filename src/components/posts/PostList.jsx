@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
  * @param {ReturnType<typeof import("@/hooks/useInfiniteList").useInfiniteList>} props.query - The list (from useInfiniteList).
  * @param {React.ReactNode} props.emptyMessage - Shown when there are no posts.
  * @param {boolean} [props.showAuthor=true] - Shows each post's author.
+ * @param {(post: object) => void} [props.onOpen] - Opens a post in place instead of on its public page.
  * @param {(post: object) => void} [props.onEdit] - Adds an Edit button to each card.
  * @returns {JSX.Element}
  */
-export function PostList({ query, emptyMessage, showAuthor = true, onEdit }) {
+export function PostList({ query, emptyMessage, showAuthor = true, onOpen, onEdit }) {
   if (query.error) {
     return (
       <div className="flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-6" role="alert">
@@ -39,7 +40,7 @@ export function PostList({ query, emptyMessage, showAuthor = true, onEdit }) {
     <>
       <div className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-3 ${query.loading ? "opacity-60" : ""}`} aria-busy={query.loading}>
         {posts.map((post) => (
-          <PostCard key={post._id} post={post} showAuthor={showAuthor} onEdit={onEdit} />
+          <PostCard key={post._id} post={post} showAuthor={showAuthor} onOpen={onOpen} onEdit={onEdit} />
         ))}
       </div>
       <div className="mt-6">

@@ -23,27 +23,32 @@ export function postExcerpt(content) {
 }
 
 /**
- * One post in a list: cover image, title, a short description, author and date, and "Read more"
- * (opens the full post). With `onEdit`, an Edit button is shown too (the author's own list).
+ * One post in a list: cover image, title, a short description, author and date, and "Read more".
+ * By default the post opens on its public page; with `onOpen` (the author's own list) it opens in
+ * place instead. With `onEdit`, an Edit button is shown too.
  *
  * @param {object} props
  * @param {object} props.post - The post (with author and images).
  * @param {boolean} [props.showAuthor=true] - Shows the author (hidden on an author's own page).
+ * @param {(post: object) => void} [props.onOpen] - Opens the full post in place (instead of its page).
  * @param {(post: object) => void} [props.onEdit] - Opens the post in the editor.
  * @returns {JSX.Element}
  */
-export function PostCard({ post, showAuthor = true, onEdit }) {
+export function PostCard({ post, showAuthor = true, onOpen, onEdit }) {
   const [cover] = post.images ?? [];
   const coverUrl = cover ? resolveImageUrl(cover.url) : "";
   const href = `/posts/${post._id}`;
   const excerpt = postExcerpt(post.content);
+  // The title, cover and "Read more" either open the post in place or go to its public page.
+  const OpenLink = onOpen ? OpenButton : Link;
+  const openProps = onOpen ? { onClick: () => onOpen(post) } : { href };
 
   return (
     <article
       className={`flex flex-col overflow-hidden rounded-2xl border border-border shadow-[0_8px_24px_-12px] shadow-foreground/15 ${noteColorClass(post.color)}`}
     >
       {cover && (
-        <Link href={href} tabIndex={-1} aria-hidden="true">
+        <OpenLink {...openProps} tabIndex={-1} aria-hidden="true" className="block w-full">
           <Image
             src={coverUrl}
             alt=""
@@ -53,14 +58,14 @@ export function PostCard({ post, showAuthor = true, onEdit }) {
             unoptimized={!canOptimizeImage(coverUrl)}
             className="h-48 w-full object-cover"
           />
-        </Link>
+        </OpenLink>
       )}
 
       <div className="flex flex-1 flex-col px-4 pt-4 pb-3">
         <h2 className="text-[19px] leading-6 font-bold break-words">
-          <Link href={href} className="rounded-sm outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus">
+          <OpenLink {...openProps} className="rounded-sm text-left outline-none hover:underline focus-visible:ring-3 focus-visible:ring-focus">
             {post.title}
-          </Link>
+          </OpenLink>
         </h2>
         {excerpt && <p className="mt-2 line-clamp-3 text-[15px] leading-[22px] break-words text-foreground/85">{excerpt}</p>}
 
@@ -86,17 +91,26 @@ export function PostCard({ post, showAuthor = true, onEdit }) {
                 <Pencil className="size-[18px]" aria-hidden="true" />
               </button>
             )}
-            <Link
-              href={href}
+            <OpenLink
+              {...openProps}
               aria-label={`Read more: ${post.title}`}
               className="flex items-center gap-1 rounded-md text-[14px] font-bold text-brand-strong hover:underline focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none"
             >
               Read more
               <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
+            </OpenLink>
           </span>
         </div>
       </div>
     </article>
+  );
+}
+
+/** A button with the same props as the link it replaces (used when the post opens in place). */
+function OpenButton({ children, ...props }) {
+  return (
+    <button type="button" {...props}>
+      {children}
+    </button>
   );
 }

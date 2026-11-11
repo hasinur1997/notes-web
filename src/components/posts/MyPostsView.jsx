@@ -8,6 +8,7 @@ import { SidebarPage } from "@/components/layout/SidebarPage";
 import { PostComposer } from "@/components/posts/PostComposer";
 import { PostEditorDialog } from "@/components/posts/PostEditorDialog";
 import { PostList } from "@/components/posts/PostList";
+import { PostViewDialog } from "@/components/posts/PostViewDialog";
 import { useAuth } from "@/context/AuthContext";
 import { useInfiniteList } from "@/hooks/useInfiniteList";
 import { postsApi } from "@/lib/api";
@@ -42,7 +43,8 @@ async function imageAction(call, success) {
 
 /**
  * Composer for a new post, the user's posts (newest first, from the same endpoint as their public
- * page, loading more while scrolling), and the editor dialog for changing or deleting one.
+ * page, loading more while scrolling), a viewer that opens a post in place, and the editor dialog
+ * for changing or deleting one.
  * After a change, reload() refetches every batch already shown, so the scroll position is kept.
  *
  * @returns {JSX.Element}
@@ -50,9 +52,16 @@ async function imageAction(call, success) {
 function MyPostsScreen() {
   const { user } = useAuth();
   const [editor, setEditor] = useState({ open: false, post: null, key: 0 });
+  const [viewing, setViewing] = useState(null);
   const posts = useInfiniteList(`my-posts&limit=${PAGE_SIZE}`, (page, signal) =>
     postsApi.listByUser(user._id, { page, limit: PAGE_SIZE }, signal),
   );
+
+  /** Opens a post in the editor (from its card or from the viewer). */
+  function openEditor(post) {
+    setViewing(null);
+    setEditor((current) => ({ open: true, post, key: current.key + 1 }));
+  }
 
   /** Publishes a post, then uploads the queued images. */
   async function handleCreate(values, images) {
@@ -110,9 +119,12 @@ function MyPostsScreen() {
       <PostList
         query={posts}
         showAuthor={false}
-        onEdit={(post) => setEditor((current) => ({ open: true, post, key: current.key + 1 }))}
+        onOpen={setViewing}
+        onEdit={openEditor}
         emptyMessage="You haven't posted anything yet. Use “Write a post…” above to share your first one."
       />
+
+      <PostViewDialog post={viewing} onOpenChange={(open) => !open && setViewing(null)} onEdit={openEditor} />
 
       <PostEditorDialog
         key={editor.key}

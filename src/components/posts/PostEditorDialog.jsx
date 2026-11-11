@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NoteEditor } from "@/components/notes/editor/NoteEditor";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -27,7 +26,6 @@ const NO_LABELS = [];
  * @returns {JSX.Element}
  */
 export function PostEditorDialog({ open, onOpenChange, post: initialPost, actions }) {
-  const router = useRouter();
   const [post, setPost] = useState(initialPost);
   const [uploads, setUploads] = useState([]);
   // Ids of images being replaced by their cropped version (shown dimmed with a spinner).
@@ -89,7 +87,6 @@ export function PostEditorDialog({ open, onOpenChange, post: initialPost, action
   ];
 
   const moreActions = [
-    { label: "View post", onSelect: () => router.push(`/posts/${post._id}`) },
     { label: "Delete post", destructive: true, onSelect: () => setConfirmDelete(true) },
   ];
 

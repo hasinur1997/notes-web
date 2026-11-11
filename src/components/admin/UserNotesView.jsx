@@ -67,7 +67,9 @@ function PeopleCards() {
     key: `people?q=${q}&limit=${notesPerPage}`,
     infinite,
     page,
-    fetchPage: (next, signal) => adminApi.listUsers({ q: q || undefined, page: next, limit: notesPerPage }, signal),
+    // The signed-in admin is left out: their own notes are under "My Notes".
+    fetchPage: (next, signal) =>
+      adminApi.listUsers({ q: q || undefined, excludeSelf: true, page: next, limit: notesPerPage }, signal),
   });
   const handleSearch = useCallback((term) => router.replace(hrefWith({ q: term })), [router, hrefWith]);
   const rows = people.data?.data ?? [];

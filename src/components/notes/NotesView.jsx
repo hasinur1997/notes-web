@@ -217,7 +217,7 @@ function NotesScreen() {
     return query ? `/notes?${query}` : "/notes";
   };
 
-  const heading = reminderView ? "Reminders" : label || (q ? `Results for "${q}"` : "All notes");
+  const heading = reminderView ? "Reminders" : label || (q ? `Results for "${q}"` : isAdmin(user) ? "My Notes" : "All notes");
   const highlight = useMemo(() => highlightPattern(searchWords(q)), [q]);
   // Matches found by the search: pinned ones plus every other match (not just this page).
   const resultCount = q && pinned.data && others.data ? pinned.data.meta.total + others.data.meta.total : null;

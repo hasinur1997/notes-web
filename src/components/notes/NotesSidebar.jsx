@@ -4,7 +4,7 @@ import { Bell, File, NotebookText, Pencil, Tag, UsersRound } from "lucide-react"
 const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15px] transition-colors";
 
 /**
- * Sidebar navigation: "All notes" and "Reminders" with counts, each label with its count, and "Edit labels".
+ * Sidebar navigation: "All notes" ("My Notes" for admins) and "Reminders" with counts, each label with its count, and "Edit labels".
  * The active entry is highlighted with the amber pill.
  *
  * @param {object} props
@@ -37,7 +37,7 @@ export function NotesSidebar({
     <nav className="flex min-h-0 flex-1 flex-col">
       <SidebarItem
         icon={File}
-        label="All notes"
+        label={showAdmin ? "My Notes" : "All notes"}
         count={summary?.totalNotes}
         active={!activeAdmin && !activeLabel && !activeView}
         onClick={() => onSelectView("")}

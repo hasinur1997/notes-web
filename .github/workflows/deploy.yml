@@ -1,0 +1,170 @@
+name: Build and Deploy to cPanel
+
+# Builds the Next.js app on GitHub (shared hosting has too little memory for `next build`)
+# and ships only the built app to cPanel, where Passenger runs it through server.js.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: notes-web-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # NEXT_PUBLIC_* values are written into the browser code at build time,
+      # so the API URL must be set here, not on the server.
+      - name: Build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          if [ -z "$NEXT_PUBLIC_API_URL" ]; then
+            echo "::error::Set the NEXT_PUBLIC_API_URL variable in the production environment (e.g. https://notes-api.sanovya.com/api)"
+            exit 1
+          fi
+          npm run build
+
+      # Only what `next start` needs at runtime; .next/cache is build-time only.
+      - name: Package release
+        run: |
+          files=(.next package.json package-lock.json next.config.mjs server.js)
+          if [ -d public ]; then files+=(public); fi
+          tar -czf release.tgz --exclude=.next/cache "${files[@]}"
+          ls -lh release.tgz
+
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release.tgz
+          retention-days: 7
+
+  deploy:
+    name: Deploy to cPanel
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      DEPLOY_PATH: ${{ secrets.CPANEL_DEPLOY_PATH }}
+
+    steps:
+      - name: Download release
+        uses: actions/download-artifact@v4
+        with:
+          name: release
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/notes_web_deploy
+          chmod 600 ~/.ssh/notes_web_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
+          CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
+        run: |
+          ssh -i ~/.ssh/notes_web_deploy \
+            -p "$CPANEL_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$CPANEL_USERNAME@$CPANEL_HOST" \
+            "mkdir -p '$DEPLOY_PATH/tmp' && cat > '$DEPLOY_PATH/tmp/release.tgz'" < release.tgz
+
+      # Over SSH, cPanel has no node/npm on PATH: each app created in "Setup Node.js App" gets its own
+      # virtual environment at ~/nodevenv/<app path relative to home>/<node version>/bin/activate.
+      # `npm install` is used instead of `npm ci` because CloudLinux makes node_modules a symlink into
+      # that environment, and `npm ci` would delete it.
+      # Dependencies are installed while the old build is still serving; the build folders are then
+      # swapped and Passenger is restarted, so the site is only briefly between versions.
+      # Files the deploy does not own (.htaccess, stderr.log, ...) are left alone.
+      - name: Install dependencies, switch build and restart Passenger
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_PORT: ${{ secrets.CPANEL_PORT }}
+          CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
+        run: |
+          ssh -i ~/.ssh/notes_web_deploy \
+            -p "$CPANEL_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$CPANEL_USERNAME@$CPANEL_HOST" \
+            "bash -s -- '$DEPLOY_PATH'" <<'REMOTE'
+          set -e
+          app_dir="${1%/}"
+          app_rel="${app_dir#"$HOME"/}"
+          activate=$(ls -d "$HOME/nodevenv/$app_rel"/*/bin/activate 2>/dev/null | sort -V | tail -n 1)
+          if [ -z "$activate" ]; then
+            echo "No Node.js environment found at ~/nodevenv/$app_rel." >&2
+            echo "Create the app first in cPanel -> Setup Node.js App with Application root '$app_rel' and startup file 'server.js'." >&2
+            exit 1
+          fi
+          echo "Using $activate"
+          . "$activate"
+          cd "$app_dir"
+          node --version
+
+          rm -rf tmp/release
+          mkdir -p tmp/release
+          tar -xzf tmp/release.tgz -C tmp/release
+          rm -f tmp/release.tgz
+
+          cp tmp/release/package.json tmp/release/package-lock.json .
+          npm install --omit=dev --no-audit --no-fund
+
+          rm -rf .next.old public.old
+          if [ -d .next ]; then mv .next .next.old; fi
+          mv tmp/release/.next .next
+          if [ -d tmp/release/public ]; then
+            if [ -d public ]; then mv public public.old; fi
+            mv tmp/release/public public
+          fi
+          cp tmp/release/next.config.mjs tmp/release/server.js .
+
+          touch tmp/restart.txt
+          rm -rf .next.old public.old tmp/release
+          echo "Deployed and restarted."
+          REMOTE
+
+      # Optional: set the SITE_URL variable (e.g. https://notes.sanovya.com) to check the live site.
+      - name: Check the live site
+        if: ${{ vars.SITE_URL != '' }}
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          curl -fsS -o /dev/null --retry 10 --retry-delay 6 --retry-all-errors --max-time 30 \
+            -w "GET $SITE_URL/login -> %{http_code} in %{time_total}s\n" "$SITE_URL/login"

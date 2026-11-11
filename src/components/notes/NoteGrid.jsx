@@ -12,6 +12,11 @@ const STAGGER_MS = 30;
 const MAX_STAGGERED = 12;
 /** Cards count as shown once their entry animation has had time to finish. */
 const SETTLE_MS = 300 + MAX_STAGGERED * STAGGER_MS;
+/**
+ * Ids of notes any grid has already shown in this session. Shared across grids and pages, so going
+ * back to a page does not replay the entry animation for cards the user has already seen.
+ */
+const shownIds = new Set();
 
 /**
  * Splits items into columns left to right (item 1 → column 1, item 2 → column 2, …),
@@ -30,9 +35,9 @@ export function distributeIntoColumns(items, columnCount) {
 
 /**
  * Masonry grid of notes: equal-width columns where each card keeps its natural height.
- * The column count follows the available width (up to 4). Cards fade in the first time the grid
- * shows them (staggered when several arrive together), but not again when a resize or a new
- * note moves them to another column.
+ * The column count follows the available width (up to 4). Cards fade in the first time they are
+ * shown in this session (staggered when several arrive together), but not again when a resize or
+ * a new note moves them to another column, or when the user comes back to the page.
  *
  * @param {object} props
  * @param {object[]} props.notes - Notes in display order.
@@ -42,16 +47,14 @@ export function distributeIntoColumns(items, columnCount) {
 export function NoteGrid({ notes, renderNote }) {
   const ref = useRef(null);
   const columnCount = useColumnCount(ref, MIN_COLUMN_WIDTH, GAP);
-  // Ids already shown; a stable Set (never replaced). Ids are added only after the entry
-  // animation, so a card that remounts in another column meanwhile (e.g. the first width
-  // measurement) still animates instead of popping in.
-  const [shownIds] = useState(() => new Set());
+  // Ids are added to shownIds only after the entry animation, so a card that remounts in another
+  // column meanwhile (e.g. the first width measurement) still animates instead of popping in.
   const newIds = notes.filter((note) => !shownIds.has(note._id)).map((note) => note._id);
 
   useEffect(() => {
     const timer = setTimeout(() => notes.forEach((note) => shownIds.add(note._id)), SETTLE_MS);
     return () => clearTimeout(timer);
-  }, [notes, shownIds]);
+  }, [notes]);
 
   return (
     <div ref={ref} className="flex items-start gap-4">

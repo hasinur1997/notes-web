@@ -4,7 +4,6 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { useAuth } from "@/context/AuthContext";
-import { PAGE_ENTER_CLASS } from "@/lib/motion";
 
 const LINK_BUTTON =
   "inline-flex h-10 items-center justify-center rounded-[10px] px-4 text-[15px] font-bold focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none";
@@ -47,7 +46,7 @@ export function PublicShell({ children }) {
           )}
         </nav>
       </header>
-      <main className={`mx-auto w-full max-w-6xl px-4 pt-8 pb-12 md:px-8 ${PAGE_ENTER_CLASS}`}>{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 pt-8 pb-12 md:px-8">{children}</main>
     </div>
   );
 }

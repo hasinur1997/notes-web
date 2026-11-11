@@ -9,7 +9,6 @@ import { SearchBox } from "@/components/layout/SearchBox";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { usePreventFileDropNavigation } from "@/hooks/useFileDrop";
-import { PAGE_ENTER_CLASS } from "@/lib/motion";
 
 /** Matches Tailwind's `lg` breakpoint, where the sidebar sits beside the content. */
 const DESKTOP_QUERY = "(min-width: 1024px)";
@@ -79,7 +78,7 @@ export function AppShell({ renderSidebar, searchValue = "", onSearch, children }
             {renderSidebar(() => {})}
           </aside>
         )}
-        <main className={`min-w-0 flex-1 px-4 pt-6 pb-8 md:px-8 ${PAGE_ENTER_CLASS}`}>{children}</main>
+        <main className="min-w-0 flex-1 px-4 pt-6 pb-8 md:px-8">{children}</main>
       </div>
 
       {hasSidebar && (

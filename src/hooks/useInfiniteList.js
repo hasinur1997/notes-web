@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getCached, setCached } from "@/lib/queryCache";
+
+/** Cache namespace for this hook: the loaded pages and meta of a list. */
+const cacheKey = (key) => `infinite:${key}`;
 
 /** Key and version share one string; the version part changes on reload only. */
 const keyOf = (requestKey) => requestKey.slice(0, requestKey.lastIndexOf("#"));
@@ -10,6 +14,8 @@ const keyOf = (requestKey) => requestKey.slice(0, requestKey.lastIndexOf("#"));
  * infinite scrolling. A new `key` starts again from page 1; `reload()` re-fetches every page
  * already shown (so changes appear without losing the scroll position). Stale responses are
  * ignored, and items are de-duplicated by `_id` in case the list shifted between pages.
+ * The pages loaded are cached for the session (lib/queryCache): coming back to a list shows the
+ * same pages at once and refreshes all of them in the background.
  *
  * @template T
  * @param {string | null} key - Describes the list (filters, page size). `null` turns it off.
@@ -23,7 +29,11 @@ const keyOf = (requestKey) => requestKey.slice(0, requestKey.lastIndexOf("#"));
  */
 export function useInfiniteList(key, fetchPage) {
   const [version, setVersion] = useState(0);
-  const [state, setState] = useState({ key: null, pages: [], meta: null, error: null });
+  // Start from the cached pages of this list, if it was shown before in this session.
+  const [state, setState] = useState(() => {
+    const cached = key === null ? undefined : getCached(cacheKey(key));
+    return cached ? { key: `${key}#0`, pages: cached.pages, meta: cached.meta, error: null } : { key: null, pages: [], meta: null, error: null };
+  });
   const [more, setMore] = useState({ loading: false, error: null });
   const fetchRef = useRef(fetchPage);
   const stateRef = useRef(state);
@@ -57,6 +67,11 @@ export function useInfiniteList(key, fetchPage) {
     );
     return () => controller.abort();
   }, [requestKey]);
+
+  // Keep the cache in step with every loaded page (first load, reload and "load more").
+  useEffect(() => {
+    if (state.key !== null && state.meta && !state.error) setCached(cacheKey(keyOf(state.key)), { pages: state.pages, meta: state.meta });
+  }, [state]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 

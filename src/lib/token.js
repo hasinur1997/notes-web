@@ -2,7 +2,9 @@
  * Access-token storage in localStorage.
  * Only call these from effects or event handlers (never during render) to avoid hydration mismatches.
  * Every access is wrapped in try/catch because storage can be unavailable (private mode, blocked site data).
+ * Changing the token (sign-in, sign-out, expired session) also clears cached API responses.
  */
+import { clearQueryCache } from "@/lib/queryCache";
 
 const TOKEN_KEY = "notes.token";
 
@@ -26,6 +28,7 @@ export function getToken() {
  * @returns {void}
  */
 export function setToken(token) {
+  clearQueryCache();
   try {
     window.localStorage.setItem(TOKEN_KEY, token);
   } catch {
@@ -39,6 +42,7 @@ export function setToken(token) {
  * @returns {void}
  */
 export function clearToken() {
+  clearQueryCache();
   try {
     window.localStorage.removeItem(TOKEN_KEY);
   } catch {

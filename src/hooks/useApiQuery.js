@@ -1,12 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getCached, setCached } from "@/lib/queryCache";
+
+/** Cache namespace for this hook (useInfiniteList stores a different shape). */
+const cacheKey = (key) => `query:${key}`;
 
 /**
  * Loads data from the API and re-loads whenever `key` changes.
  * Stale responses are cancelled with AbortController, so a slow old request can never
  * overwrite newer data. Loading is derived (the stored result belongs to another key),
  * which keeps state updates out of the effect body.
+ * Responses are cached for the session (lib/queryCache): a key loaded before is shown at once
+ * and refreshed in the background, so returning to a page never flashes a loading state.
  *
  * @template T
  * @param {string | null} key - Serializable description of the request (e.g. a query string). Changing it
@@ -30,7 +36,9 @@ export function useApiQuery(key, fetcher) {
     const controller = new AbortController();
     fetcherRef.current(controller.signal).then(
       (data) => {
-        if (!controller.signal.aborted) setResult({ key: requestKey, data, error: null });
+        if (controller.signal.aborted) return;
+        setCached(cacheKey(requestKey.slice(0, requestKey.lastIndexOf("#"))), data);
+        setResult({ key: requestKey, data, error: null });
       },
       (error) => {
         if (!controller.signal.aborted) setResult((prev) => ({ key: requestKey, data: prev.data, error }));
@@ -41,11 +49,18 @@ export function useApiQuery(key, fetcher) {
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
+  // Until this key's response arrives, show its cached copy (if any) instead of a loading state.
+  const fresh = result.key === requestKey;
+  const cached = !fresh && key !== null ? getCached(cacheKey(key)) : undefined;
+  if (cached !== undefined) {
+    return { data: cached, dataKey: key, error: null, loading: false, reload };
+  }
+
   return {
     data: result.data,
     dataKey: result.key === null ? null : result.key.slice(0, result.key.lastIndexOf("#")),
-    error: result.key === requestKey ? result.error : null,
-    loading: requestKey !== null && result.key !== requestKey,
+    error: fresh ? result.error : null,
+    loading: requestKey !== null && !fresh,
     reload,
   };
 }

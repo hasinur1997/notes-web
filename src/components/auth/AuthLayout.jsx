@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
-import { PAGE_ENTER_CLASS } from "@/lib/motion";
 
 const HOME_LINK_CLASS = "w-fit rounded-[10px] focus-visible:ring-3 focus-visible:ring-focus focus-visible:outline-none";
 
@@ -43,7 +42,7 @@ export function AuthLayout({ headline, description, aside, children }) {
         <div className="lg:hidden">
           <HomeLink />
         </div>
-        <div className={`flex w-full justify-center ${PAGE_ENTER_CLASS}`}>{children}</div>
+        {children}
       </main>
     </div>
   );

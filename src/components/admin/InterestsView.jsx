@@ -115,6 +115,10 @@ export function InterestsView() {
                       <span className="text-muted-foreground">{person.email}</span>
                     </li>
                   ))}
+                  {group.count > group.users.length && (
+                    // The API lists a limited number of people per group; count is the full size.
+                    <li className="text-muted-foreground">and {group.count - group.users.length} more</li>
+                  )}
                 </ul>
               </li>
             ))}

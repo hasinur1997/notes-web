@@ -8,15 +8,26 @@ import { AUTH_LINK_CLASS, AUTH_SUBMIT_CLASS, AuthCard } from "@/components/auth/
 import { FormField } from "@/components/auth/FormField";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
+import { checkConfirmation, checkEmail, checkName, checkNewPassword } from "@/lib/validation";
 
 const EMPTY_FORM = { name: "", email: "", password: "", confirmPassword: "" };
-const PASSWORD_MISMATCH = "Passwords do not match.";
 const AFTER_REGISTER_PATH = "/notes";
+
+/** Message per invalid field of the registration form. */
+function validateRegistration({ name, email, password, confirmPassword }) {
+  return {
+    name: checkName(name),
+    email: checkEmail(email),
+    password: checkNewPassword(password),
+    confirmPassword: checkConfirmation(password, confirmPassword),
+  };
+}
 
 /**
  * "Create your account" card: name, email, password and confirmation.
- * Field rules (length, format, duplicates) are enforced by the API; the browser's
- * native checks are only hints. The confirmation match is a UI-only check.
+ * Each field shows its own message under it (no browser popups); the API checks everything
+ * again, including duplicate emails. The confirmation match is a UI-only check.
  * On success the user is signed in and sent to their notes.
  *
  * @returns {JSX.Element}
@@ -25,11 +36,8 @@ export function RegisterForm() {
   const { register } = useAuth();
   const router = useRouter();
   const [values, setValues] = useState(EMPTY_FORM);
-  const [confirmTouched, setConfirmTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const passwordsMatch = values.password === values.confirmPassword;
-  const confirmError = confirmTouched && !passwordsMatch ? PASSWORD_MISMATCH : undefined;
+  const { errors, handleBlur, validateAll, reset } = useFieldErrors(values, validateRegistration);
 
   /** Updates one field from its input's `name`. */
   function handleChange(event) {
@@ -37,11 +45,10 @@ export function RegisterForm() {
     setValues((current) => ({ ...current, [name]: value }));
   }
 
-  /** Validates the confirmation, then creates the account. */
+  /** Checks every field, then creates the account. */
   async function handleSubmit(event) {
     event.preventDefault();
-    setConfirmTouched(true);
-    if (!passwordsMatch || submitting) return;
+    if (submitting || !validateAll(event.currentTarget)) return;
 
     setSubmitting(true);
     try {
@@ -49,7 +56,7 @@ export function RegisterForm() {
       await register({ name, email, password });
       // Clear passwords so they do not linger in a preserved (hidden) route.
       setValues(EMPTY_FORM);
-      setConfirmTouched(false);
+      reset();
       toast.success("Account created. Welcome to Notes!");
       router.replace(AFTER_REGISTER_PATH);
     } catch (err) {
@@ -72,17 +79,18 @@ export function RegisterForm() {
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <FormField
           id="name"
           name="name"
           label="Full name"
           placeholder="Your name"
           autoComplete="name"
-          required
           maxLength={100}
           value={values.name}
           onChange={handleChange}
+          onBlur={handleBlur}
+          error={errors.name}
         />
         <FormField
           id="email"
@@ -91,10 +99,11 @@ export function RegisterForm() {
           label="Email"
           placeholder="you@example.com"
           autoComplete="email"
-          required
           maxLength={254}
           value={values.email}
           onChange={handleChange}
+          onBlur={handleBlur}
+          error={errors.email}
         />
         <FormField
           id="password"
@@ -103,11 +112,11 @@ export function RegisterForm() {
           label="Password"
           placeholder="At least 8 characters"
           autoComplete="new-password"
-          required
-          minLength={8}
           maxLength={72}
           value={values.password}
           onChange={handleChange}
+          onBlur={handleBlur}
+          error={errors.password}
         />
         <FormField
           id="confirmPassword"
@@ -119,8 +128,8 @@ export function RegisterForm() {
           maxLength={72}
           value={values.confirmPassword}
           onChange={handleChange}
-          onBlur={() => values.confirmPassword && setConfirmTouched(true)}
-          error={confirmError}
+          onBlur={handleBlur}
+          error={errors.confirmPassword}
         />
 
         <Button

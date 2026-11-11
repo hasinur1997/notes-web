@@ -5,8 +5,8 @@ import { UserPlus, X } from "lucide-react";
 import { UserAvatar } from "@/components/layout/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { EMAIL_PATTERN } from "@/lib/validation";
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Shows who a note is shared with. The owner can add people by email and remove them;
@@ -26,8 +26,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function CollaboratorsDialog({ open, onOpenChange, owner, collaborators, canManage, currentUserId, onAdd, onRemove }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  // Shown after leaving the field with an invalid address (the Add button stays disabled meanwhile).
+  const [showError, setShowError] = useState(false);
   const trimmed = email.trim().toLowerCase();
   const valid = EMAIL_PATTERN.test(trimmed);
+  const emailError = showError && trimmed && !valid ? "Enter a valid email address, like name@example.com." : undefined;
 
   /** Adds the typed email. */
   async function handleAdd(event) {
@@ -85,22 +88,32 @@ export function CollaboratorsDialog({ open, onOpenChange, owner, collaborators, 
         </ul>
 
         {canManage && (
-          <form onSubmit={handleAdd} className="flex items-center gap-2">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
-              <UserPlus className="size-5" aria-hidden="true" />
-            </span>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Person's email to share with"
-              aria-label="Email of the person to share with"
-              maxLength={254}
-              className="h-10 min-w-0 flex-1 rounded-[10px] border border-border bg-card px-3 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus"
-            />
-            <Button type="submit" disabled={!valid || busy} className="h-10 rounded-[10px] px-4 text-[15px] font-bold">
-              Add
-            </Button>
+          <form onSubmit={handleAdd} noValidate className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground">
+                <UserPlus className="size-5" aria-hidden="true" />
+              </span>
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                onBlur={() => setShowError(true)}
+                placeholder="Person's email to share with"
+                aria-label="Email of the person to share with"
+                aria-invalid={emailError ? true : undefined}
+                aria-describedby={emailError ? "collaborator-email-error" : undefined}
+                maxLength={254}
+                className="h-10 min-w-0 flex-1 rounded-[10px] border border-border bg-card px-3 text-[15px] outline-none placeholder:text-placeholder focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-focus aria-invalid:border-destructive"
+              />
+              <Button type="submit" disabled={!valid || busy} className="h-10 rounded-[10px] px-4 text-[15px] font-bold">
+                Add
+              </Button>
+            </div>
+            {emailError && (
+              <p id="collaborator-email-error" className="pl-[52px] text-xs leading-[18px] text-destructive">
+                {emailError}
+              </p>
+            )}
           </form>
         )}
       </DialogContent>

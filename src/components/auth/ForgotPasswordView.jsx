@@ -9,12 +9,17 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { FormField } from "@/components/auth/FormField";
 import { NotePreviewCards } from "@/components/auth/NotePreviewCards";
 import { Button } from "@/components/ui/button";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
 import { authApi } from "@/lib/api";
+import { checkEmail } from "@/lib/validation";
 
 const PREVIEW_NOTES = [
   { title: "Weekly plan", body: "Finish API docs, review index strategy, prepare demo." },
   { title: "Book list", body: "Deep Work, Atomic Habits, Clean Code." },
 ];
+
+/** Message for an invalid email. */
+const validateEmailForm = ({ email }) => ({ email: checkEmail(email) });
 
 const BACK_TO_SIGN_IN = (
   <>
@@ -35,11 +40,12 @@ export function ForgotPasswordView() {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { errors, handleBlur, validateAll } = useFieldErrors({ email }, validateEmailForm);
 
   /** Requests the reset email. */
   async function handleSubmit(event) {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || !validateAll(event.currentTarget)) return;
     setSubmitting(true);
     try {
       await authApi.forgotPassword(email.trim());
@@ -74,7 +80,7 @@ export function ForgotPasswordView() {
         </AuthCard>
       ) : (
         <AuthCard title="Forgot password?" subtitle="We'll email you a reset link." footer={BACK_TO_SIGN_IN}>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <FormField
               id="email"
               name="email"
@@ -82,10 +88,11 @@ export function ForgotPasswordView() {
               label="Email"
               placeholder="you@example.com"
               autoComplete="email"
-              required
               maxLength={254}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              onBlur={handleBlur}
+              error={errors.email}
             />
             <Button type="submit" disabled={submitting} className={AUTH_SUBMIT_CLASS}>
               {submitting ? "Sending…" : "Send reset link"}

@@ -9,14 +9,20 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { FormField } from "@/components/auth/FormField";
 import { NotePreviewCards } from "@/components/auth/NotePreviewCards";
 import { Button } from "@/components/ui/button";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
 import { authApi } from "@/lib/api";
+import { checkConfirmation, checkNewPassword } from "@/lib/validation";
 
 const PREVIEW_NOTES = [
   { title: "Weekly plan", body: "Finish API docs, review index strategy, prepare demo." },
   { title: "Book list", body: "Deep Work, Atomic Habits, Clean Code." },
 ];
 const TOKEN_PATTERN = /^[a-f0-9]{64}$/;
-const PASSWORD_MISMATCH = "Passwords do not match.";
+
+/** Message per invalid field of the new-password form. */
+function validateNewPassword({ password, confirmPassword }) {
+  return { password: checkNewPassword(password), confirmPassword: checkConfirmation(password, confirmPassword) };
+}
 
 const REQUEST_NEW_LINK = (
   <>
@@ -42,12 +48,9 @@ export function ResetPasswordView() {
   const linkLooksValid = Boolean(email) && TOKEN_PATTERN.test(token);
 
   const [values, setValues] = useState({ password: "", confirmPassword: "" });
-  const [confirmTouched, setConfirmTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { errors, handleBlur, validateAll, reset } = useFieldErrors(values, validateNewPassword);
   const [linkError, setLinkError] = useState(linkLooksValid ? "" : "This reset link is incomplete. Please request a new one.");
-
-  const passwordsMatch = values.password === values.confirmPassword;
-  const confirmError = confirmTouched && !passwordsMatch ? PASSWORD_MISMATCH : undefined;
 
   /** Updates one field from its input's `name`. */
   function handleChange(event) {
@@ -58,12 +61,12 @@ export function ResetPasswordView() {
   /** Sets the new password and goes to sign in. */
   async function handleSubmit(event) {
     event.preventDefault();
-    setConfirmTouched(true);
-    if (!passwordsMatch || submitting) return;
+    if (submitting || !validateAll(event.currentTarget)) return;
     setSubmitting(true);
     try {
       const { message } = await authApi.resetPassword({ email, token, password: values.password });
       setValues({ password: "", confirmPassword: "" });
+      reset();
       toast.success(message);
       router.replace("/login");
     } catch (err) {
@@ -91,7 +94,7 @@ export function ResetPasswordView() {
         </AuthCard>
       ) : (
         <AuthCard title="Set a new password" subtitle={`For ${email}`} footer={REQUEST_NEW_LINK}>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <FormField
               id="password"
               name="password"
@@ -99,11 +102,11 @@ export function ResetPasswordView() {
               label="New password"
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              required
-              minLength={8}
               maxLength={72}
               value={values.password}
               onChange={handleChange}
+              onBlur={handleBlur}
+              error={errors.password}
             />
             <FormField
               id="confirmPassword"
@@ -115,8 +118,8 @@ export function ResetPasswordView() {
               maxLength={72}
               value={values.confirmPassword}
               onChange={handleChange}
-              onBlur={() => values.confirmPassword && setConfirmTouched(true)}
-              error={confirmError}
+              onBlur={handleBlur}
+              error={errors.confirmPassword}
             />
             <Button type="submit" disabled={submitting} className={AUTH_SUBMIT_CLASS}>
               {submitting ? "Saving…" : "Change password"}

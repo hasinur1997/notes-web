@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { ROLE_OPTIONS } from "@/lib/roles";
 
-const MIN_PASSWORD = 8;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { EMAIL_PATTERN, PASSWORD_MIN as MIN_PASSWORD } from "@/lib/validation";
 
 /**
  * Dialog to create a user, or edit one when `user` is given. Shows field errors after the

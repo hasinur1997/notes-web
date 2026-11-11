@@ -8,12 +8,19 @@ import { AUTH_LINK_CLASS, AUTH_SUBMIT_CLASS, AuthCard } from "@/components/auth/
 import { FormField } from "@/components/auth/FormField";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
+import { checkEmail, checkRequired } from "@/lib/validation";
 
 const EMPTY_FORM = { email: "", password: "" };
 const AFTER_LOGIN_PATH = "/notes";
 
+/** Message per invalid field of the sign-in form. */
+function validateLogin({ email, password }) {
+  return { email: checkEmail(email), password: checkRequired(password, "Enter your password.") };
+}
+
 /**
- * "Sign in" card: email and password.
+ * "Sign in" card: email and password. Empty or malformed fields show a message under them.
  * Wrong credentials and rate limits come back from the API as messages and are shown as toasts.
  * On success the user is signed in, the password is cleared, and the app goes to their notes.
  *
@@ -24,6 +31,7 @@ export function LoginForm() {
   const router = useRouter();
   const [values, setValues] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const { errors, handleBlur, validateAll, reset } = useFieldErrors(values, validateLogin);
 
   /** Updates one field from its input's `name`. */
   function handleChange(event) {
@@ -34,13 +42,14 @@ export function LoginForm() {
   /** Signs in with the entered credentials. */
   async function handleSubmit(event) {
     event.preventDefault();
-    if (submitting) return;
+    if (submitting || !validateAll(event.currentTarget)) return;
 
     setSubmitting(true);
     try {
       await login(values);
       // Clear the password so it does not linger in a preserved (hidden) route.
       setValues(EMPTY_FORM);
+      reset();
       toast.success("Welcome back!");
       router.replace(AFTER_LOGIN_PATH);
     } catch (err) {
@@ -64,7 +73,7 @@ export function LoginForm() {
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
         <FormField
           id="email"
           name="email"
@@ -72,10 +81,11 @@ export function LoginForm() {
           label="Email"
           placeholder="you@example.com"
           autoComplete="email"
-          required
           maxLength={254}
           value={values.email}
           onChange={handleChange}
+          onBlur={handleBlur}
+          error={errors.email}
         />
         <FormField
           id="password"
@@ -84,10 +94,11 @@ export function LoginForm() {
           label="Password"
           placeholder="Enter your password"
           autoComplete="current-password"
-          required
           maxLength={72}
           value={values.password}
           onChange={handleChange}
+          onBlur={handleBlur}
+          error={errors.password}
           labelAction={
             <Link href="/forgot-password" className={`text-[13px] leading-5 ${AUTH_LINK_CLASS}`}>
               Forgot password?

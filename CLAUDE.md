@@ -168,6 +168,7 @@ src/
 - Admin UI is additive: normal users see no change. Admins get two extra menus in the notes sidebar after Reminders: **Users** (create, edit, delete, search by name or email, role dropdown per row) and **User's Notes** (people as cards with search; choosing one shows their notes like the notes page, read-only, paged per the admin's settings via `usePagedList`). "Admin" in the account menu opens Users. Role wording lives in `lib/roles.js`; the API alone enforces access.
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.
+- Forms use `noValidate` (no browser popups). Field errors show under the field via `FormField`'s `error`, using the checks in `lib/validation.js` and `hooks/useFieldErrors.js`: an error appears after leaving a filled field or after a submit attempt, and submit focuses the first invalid field. These checks are for quick feedback only; the API validates again.
 - Every destructive action uses `AlertDialog`. Every mutation shows a `sonner` toast.
 - Keep pages clean, readable and responsive. Use consistent spacing and layout so the app feels like one product.
 

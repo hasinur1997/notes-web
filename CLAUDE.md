@@ -123,7 +123,6 @@ src/
 ├── app/
 │   ├── layout.jsx                # AuthProvider, nav, <Toaster />
 │   ├── page.jsx                  # public posts feed (PublicShell: Log in / Sign up, or My notes + account menu)
-│   ├── template.jsx              # fades each new page in
 │   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ settings/ posts/
 │   ├── posts/page.jsx            # My posts (signed in, in the notes sidebar): composer, edit, delete
 │   ├── posts/[id]/page.jsx       # one post in full (public)
@@ -164,7 +163,7 @@ src/
 - Screens are built to match the provided designs. Visual tokens (colors, radius) live only in `src/app/globals.css` as shadcn CSS variables (`--primary`, `--border`, `--brand-soft`, ...); use the Tailwind classes they generate (`bg-primary`, `text-muted-foreground`, `bg-brand-soft`), never raw hex values in components.
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
-- Motion is smooth but short (150–300 ms, ease-out): pages fade in (`app/template.jsx`), note cards fade in the first time a grid shows them, interactive elements ease their colors (base rule in `globals.css`), scrolling is smooth, and the cropper animates rotation. `prefers-reduced-motion` turns all of it off globally. No dark-mode work.
+- Motion is smooth but short (150–300 ms, ease-out): page content fades in (`PAGE_ENTER_CLASS` from `lib/motion.js` on the `<main>` of AppShell / PublicShell / AuthLayout; the header and sidebar never fade, so navigating does not look like a reload), note cards fade in the first time a grid shows them, interactive elements ease their colors (base rule in `globals.css`), scrolling is smooth, and the cropper animates rotation. `prefers-reduced-motion` turns all of it off globally. No dark-mode work.
 - Posts reuse the note editor with `variant="post"` (text, formatting, colour, images; no pin, labels, reminder or sharing). Every signed-in user has a **Posts** menu in the notes sidebar after Reminders (their own posts). Public pages (`/`, `/posts/[id]`, `/users/[id]/posts`) use `PublicShell` and work without signing in.
 - Admin UI is additive: normal users see no change. Admins get two extra menus in the notes sidebar after Reminders: **Users** (create, edit, delete, search by name or email, role dropdown per row) and **User's Notes** (people as cards with search; choosing one shows their notes like the notes page, read-only, paged per the admin's settings via `usePagedList`). "Admin" in the account menu opens Users. Role wording lives in `lib/roles.js`; the API alone enforces access.
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.

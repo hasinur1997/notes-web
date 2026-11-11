@@ -21,7 +21,9 @@ export const metadata = {
  */
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${nunito.variable} h-full antialiased`}>
+    // data-scroll-behavior lets Next.js turn smooth scrolling off while it changes routes, so a new page
+    // starts at the top at once instead of gliding there.
+    <html lang="en" className={`${nunito.variable} h-full antialiased`} data-scroll-behavior="smooth">
       <body className="min-h-full">
         <AuthProvider>{children}</AuthProvider>
         <Toaster theme="light" position="bottom-center" richColors />

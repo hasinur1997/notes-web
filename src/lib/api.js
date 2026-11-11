@@ -292,6 +292,100 @@ export const notesApi = {
     apiRequest(`/notes/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, { method: "DELETE" }),
 };
 
+/** Builds the multipart body for an image upload. */
+function imageForm(file) {
+  const form = new FormData();
+  form.append("image", file);
+  return form;
+}
+
+/** Posts endpoints. Reading is public; only the author can change a post. */
+export const postsApi = {
+  /**
+   * The public feed: every post, newest first.
+   *
+   * @param {{ page?: number, limit?: number }} params - Paging.
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ data: object[], meta: { page: number, limit: number, total: number, totalPages: number } }>}
+   */
+  list: (params, signal) => apiRequest(`/posts${toQueryString(params)}`, { signal }),
+
+  /**
+   * One post with its author.
+   *
+   * @param {string} id - Post id.
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ post: object }>}
+   */
+  get: (id, signal) => apiRequest(`/posts/${encodeURIComponent(id)}`, { signal }),
+
+  /**
+   * A user's public profile and their posts, newest first (one pipeline on the server).
+   *
+   * @param {string} userId - Author id.
+   * @param {{ page?: number, limit?: number }} params - Paging.
+   * @param {AbortSignal} [signal] - Cancels the request.
+   * @returns {Promise<{ user: { _id: string, name: string, avatar: object | null, interests: string[], createdAt: string }, data: object[], meta: object }>}
+   */
+  listByUser: (userId, params, signal) =>
+    apiRequest(`/users/${encodeURIComponent(userId)}/posts${toQueryString(params)}`, { signal }),
+
+  /**
+   * Publishes a post by the signed-in user.
+   *
+   * @param {{ title: string, content?: string, color?: string }} values - Post fields.
+   * @returns {Promise<{ post: object }>}
+   */
+  create: (values) => apiRequest("/posts", { method: "POST", body: values }),
+
+  /**
+   * Updates some fields of the user's own post.
+   *
+   * @param {string} id - Post id.
+   * @param {{ title?: string, content?: string, color?: string }} values - Fields to change.
+   * @returns {Promise<{ post: object }>}
+   */
+  update: (id, values) => apiRequest(`/posts/${encodeURIComponent(id)}`, { method: "PATCH", body: values }),
+
+  /**
+   * Deletes the user's own post.
+   *
+   * @param {string} id - Post id.
+   * @returns {Promise<null>}
+   */
+  remove: (id) => apiRequest(`/posts/${encodeURIComponent(id)}`, { method: "DELETE" }),
+
+  /**
+   * Uploads one image to the user's own post.
+   *
+   * @param {string} id - Post id.
+   * @param {File} file - JPEG, PNG, WebP or GIF up to 5 MB.
+   * @returns {Promise<{ post: object }>}
+   */
+  uploadImage: (id, file) => apiRequest(`/posts/${encodeURIComponent(id)}/images`, { method: "POST", body: imageForm(file) }),
+
+  /**
+   * Replaces an image of the user's own post in place (after cropping).
+   *
+   * @param {string} id - Post id.
+   * @param {string} imageId - Image to replace.
+   * @param {File} file - The new (cropped) image.
+   * @returns {Promise<{ post: object }>}
+   */
+  replaceImage: (id, imageId, file) =>
+    apiRequest(`/posts/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, { method: "PUT", body: imageForm(file) }),
+
+  /**
+   * Removes an image from the user's own post.
+   *
+   * @param {string} id - Post id.
+   * @param {string} imageId - Image id.
+   * @returns {Promise<{ post: object }>}
+   */
+  removeImage: (id, imageId) =>
+    apiRequest(`/posts/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`, { method: "DELETE" }),
+};
+
 /** Endpoints for the signed-in user's own account. */
 export const usersApi = {
   /**

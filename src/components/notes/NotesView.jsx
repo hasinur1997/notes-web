@@ -22,6 +22,7 @@ import { notesApi } from "@/lib/api";
 import { isAdmin } from "@/lib/roles";
 import { highlightPattern, searchWords } from "@/lib/search";
 import { getSettings } from "@/lib/settings";
+import { withToast } from "@/lib/withToast";
 
 /** Pinned notes, and notes with reminders for alerts, are loaded together up to the API maximum. */
 const BULK_LIMIT = 50;
@@ -37,25 +38,6 @@ export function NotesView() {
       <NotesScreen />
     </AuthGuard>
   );
-}
-
-/**
- * Runs an API call and shows its error as a toast. Rethrows so callers can keep their UI open.
- *
- * @template T
- * @param {() => Promise<T>} call - The API call.
- * @param {string} [success] - Success toast text.
- * @returns {Promise<T>}
- */
-async function withToast(call, success) {
-  try {
-    const result = await call();
-    if (success) toast.success(success);
-    return result;
-  } catch (err) {
-    toast.error(err.message);
-    throw err;
-  }
 }
 
 /**

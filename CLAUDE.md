@@ -122,16 +122,19 @@ npm start
 src/
 ├── app/
 │   ├── layout.jsx                # AuthProvider, nav, <Toaster />
-│   ├── page.jsx                  # redirect to /notes or /login
+│   ├── page.jsx                  # public posts feed (PublicShell: Log in / Sign up, or My notes + account menu)
 │   ├── template.jsx              # fades each new page in
 │   ├── login/ register/ forgot-password/ reset-password/ notes/ profile/ settings/ posts/
-│   ├── users/[id]/posts/page.jsx # Scenario 2
+│   ├── posts/page.jsx            # My posts (signed in, in the notes sidebar): composer, edit, delete
+│   ├── posts/[id]/page.jsx       # one post in full (public)
+│   ├── users/[id]/posts/page.jsx # Scenario 2: a person's profile and posts (public)
 │   └── admin/
-│       ├── users/ user-notes/    # each page renders <AdminShell active=…> (AuthGuard + AdminGuard + the notes sidebar)
+│       ├── users/ user-notes/ interests/  # each page renders <AdminShell active=…> (AuthGuard + AdminGuard + SidebarPage)
 ├── components/
 │   ├── ui/                       # shadcn (CLI-generated, do not hand-edit unless needed)
 │   ├── auth/                     # AuthLayout, AuthCard, FormField, Register/Login/ForgotPassword/ResetPassword views, ...
-│   ├── layout/                   # AppShell (header + sidebar), SearchBox, UserMenu, UserAvatar
+│   ├── layout/                   # AppShell (header + sidebar), SidebarPage (AppShell + notes sidebar for non-notes pages), PublicShell, SearchBox, UserMenu, UserAvatar
+│   ├── posts/                    # HomeFeedView, PostDetailView, UserPostsView, MyPostsView, PostCard, PostList, PostComposer, PostEditorDialog
 │   ├── profile/                  # ProfileView (photo, name, interests, account), ProfilePhoto, InterestsInput
 │   ├── admin/                    # AdminShell, AdminGuard, AdminPager, UsersView, UserFormDialog, UserSearch, UserNotesView, NoteViewDialog
 │   ├── settings/                 # SettingsView (saved to the account), OptionGroup (radio cards / pills)
@@ -162,6 +165,7 @@ src/
 - Font: Nunito via `next/font/google` in `app/layout.jsx`. Icons: `lucide-react`.
 - shadcn style is `base-nova` (Base UI primitives). Utilities come from the official `cn` package.
 - Motion is smooth but short (150–300 ms, ease-out): pages fade in (`app/template.jsx`), note cards fade in the first time a grid shows them, interactive elements ease their colors (base rule in `globals.css`), scrolling is smooth, and the cropper animates rotation. `prefers-reduced-motion` turns all of it off globally. No dark-mode work.
+- Posts reuse the note editor with `variant="post"` (text, formatting, colour, images; no pin, labels, reminder or sharing). Every signed-in user has a **Posts** menu in the notes sidebar after Reminders (their own posts). Public pages (`/`, `/posts/[id]`, `/users/[id]/posts`) use `PublicShell` and work without signing in.
 - Admin UI is additive: normal users see no change. Admins get two extra menus in the notes sidebar after Reminders: **Users** (create, edit, delete, search by name or email, role dropdown per row) and **User's Notes** (people as cards with search; choosing one shows their notes like the notes page, read-only, paged per the admin's settings via `usePagedList`). "Admin" in the account menu opens Users. Role wording lives in `lib/roles.js`; the API alone enforces access.
 - Allowed shadcn components: `button`, `input`, `label`, `textarea`, `card`, `table`, `dialog`, `alert-dialog`, `badge`, `pagination`, `sonner`, `dropdown-menu` (account menu, toolbar menus), `sheet` (mobile sidebar), `popover` ("Label note" picker; `ui/popover.jsx` passes `anchor` to the positioner). Ask before adding any other.
 - Forms are plain controlled inputs. No `react-hook-form`, no shadcn `form`.

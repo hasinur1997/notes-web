@@ -1,22 +1,15 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { Suspense } from "react";
+import { HomeFeedView } from "@/components/posts/HomeFeedView";
 
 /**
- * `/`: sends signed-in users to their notes and everyone else to sign in.
+ * `/`: the public posts feed, for visitors and signed-in users alike.
  *
- * @returns {null}
+ * @returns {JSX.Element}
  */
 export default function HomePage() {
-  const { status } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === "authenticated") router.replace("/notes");
-    if (status === "anonymous") router.replace("/login");
-  }, [status, router]);
-
-  return null;
+  return (
+    <Suspense fallback={null}>
+      <HomeFeedView />
+    </Suspense>
+  );
 }

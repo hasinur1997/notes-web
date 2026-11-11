@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Bell, File, Hash, NotebookText, Pencil, Tag, UsersRound } from "lucide-react";
+import { Bell, File, Hash, Megaphone, NotebookText, Pencil, Tag, UsersRound } from "lucide-react";
 
 const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15px] transition-colors";
 
 /**
- * Sidebar navigation: "All notes" ("My Notes" for admins) and "Reminders" with counts, each label with its count, and "Edit labels".
+ * Sidebar navigation: "All notes" ("My Notes" for admins) and "Reminders" with counts, "Posts" (the user's own
+ * posts), the admin menus for admins, each label with its count, and "Edit labels".
  * The active entry is highlighted with the amber pill.
  *
  * @param {object} props
@@ -15,8 +16,9 @@ const ROW = "flex w-full items-center gap-4 rounded-full px-4 text-left text-[15
  * @param {(label: string) => void} props.onSelectLabel - Called with a label name.
  * @param {() => void} [props.onEditLabels] - Opens the label editor (the button is hidden without it).
  * @param {boolean} [props.showAdmin=false] - Adds the admin menus (Users, User's Notes, Interests) after Reminders.
- * @param {"users" | "user-notes" | null} [props.activeAdmin=null] - Highlights an admin menu (on admin pages).
- * @param {() => void} [props.onNavigate] - Called after an admin menu is chosen (closes the mobile sheet).
+ * @param {"posts" | "users" | "user-notes" | "interests" | null} [props.activePage=null] - Highlights a page
+ *   link (Posts, or an admin menu) when that page is open.
+ * @param {() => void} [props.onNavigate] - Called after a page link is chosen (closes the mobile sheet).
  * @returns {JSX.Element}
  */
 export function NotesSidebar({
@@ -27,7 +29,7 @@ export function NotesSidebar({
   onSelectLabel,
   onEditLabels,
   showAdmin = false,
-  activeAdmin = null,
+  activePage = null,
   onNavigate,
 }) {
   const labels = summary?.labels ?? [];
@@ -39,7 +41,7 @@ export function NotesSidebar({
         icon={File}
         label={showAdmin ? "My Notes" : "All notes"}
         count={summary?.totalNotes}
-        active={!activeAdmin && !activeLabel && !activeView}
+        active={!activePage && !activeLabel && !activeView}
         onClick={() => onSelectView("")}
         className="h-11 shrink-0"
       />
@@ -47,16 +49,18 @@ export function NotesSidebar({
         icon={Bell}
         label="Reminders"
         count={summary?.reminders}
-        active={!activeAdmin && activeView === "reminders"}
+        active={!activePage && activeView === "reminders"}
         onClick={() => onSelectView("reminders")}
         className="mt-1 h-11 shrink-0"
       />
 
+      <PageLink href="/posts" icon={Megaphone} label="Posts" active={activePage === "posts"} onNavigate={onNavigate} />
+
       {showAdmin && (
         <>
-          <AdminLink href="/admin/users" icon={UsersRound} label="Users" active={activeAdmin === "users"} onNavigate={onNavigate} />
-          <AdminLink href="/admin/user-notes" icon={NotebookText} label="User's Notes" active={activeAdmin === "user-notes"} onNavigate={onNavigate} />
-          <AdminLink href="/admin/interests" icon={Hash} label="Interests" active={activeAdmin === "interests"} onNavigate={onNavigate} />
+          <PageLink href="/admin/users" icon={UsersRound} label="Users" active={activePage === "users"} onNavigate={onNavigate} />
+          <PageLink href="/admin/user-notes" icon={NotebookText} label="User's Notes" active={activePage === "user-notes"} onNavigate={onNavigate} />
+          <PageLink href="/admin/interests" icon={Hash} label="Interests" active={activePage === "interests"} onNavigate={onNavigate} />
         </>
       )}
       <p className="mt-7 shrink-0 px-4 text-[13px] leading-[18px] font-semibold text-muted-foreground">Labels</p>
@@ -70,7 +74,7 @@ export function NotesSidebar({
               icon={Tag}
               label={label.name}
               count={label.count}
-              active={!activeAdmin && label.name === activeLabel}
+              active={!activePage && label.name === activeLabel}
               onClick={() => onSelectLabel(label.name)}
               className="h-12"
             />
@@ -123,17 +127,17 @@ function SidebarItem({ icon: Icon, label, count, active, onClick, className }) {
 }
 
 /**
- * Admin menu row: a link styled like the other rows (admins only).
+ * A row that opens another page (Posts, admin menus): a link styled like the other rows.
  *
  * @param {object} props
- * @param {string} props.href - Admin page.
+ * @param {string} props.href - Page to open.
  * @param {import("lucide-react").LucideIcon} props.icon - Row icon.
  * @param {string} props.label - Visible name.
  * @param {boolean} props.active - Highlights the row.
  * @param {() => void} [props.onNavigate] - Called when chosen.
  * @returns {JSX.Element}
  */
-function AdminLink({ href, icon: Icon, label, active, onNavigate }) {
+function PageLink({ href, icon: Icon, label, active, onNavigate }) {
   return (
     <Link
       href={href}

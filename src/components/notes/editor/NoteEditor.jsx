@@ -63,6 +63,8 @@ export function acceptImages(files, slotsLeft) {
  * @param {string[]} props.labelSuggestions - All of the user's labels, offered in the "Label note" picker.
  * @param {boolean} [props.startWithLabels=false] - Opens the "Label note" picker right away.
  * @param {string} [props.footer] - Small text above the toolbar, e.g. "Edited 10 Nov 2026".
+ * @param {"note" | "post"} [props.variant="note"] - "post" keeps the text, colour and image tools and hides
+ *   pin, labels, reminder and collaborators (posts are public and have none of those).
  * @returns {JSX.Element}
  */
 export function NoteEditor({
@@ -80,7 +82,10 @@ export function NoteEditor({
   labelSuggestions,
   startWithLabels = false,
   footer,
+  variant = "note",
 }) {
+  const isPost = variant === "post";
+  const noun = isPost ? "post" : "note";
   const { value: values, set, undo, redo, canUndo, canRedo } = useUndoableState(initialValues);
   const [showFormat, setShowFormat] = useState(false);
   // The labels shortcut opens the picker right away; its anchor ref is read after mount.
@@ -192,7 +197,7 @@ export function NoteEditor({
           aria-hidden="true"
         >
           <ImageDown className="size-8" />
-          <p className="text-[15px] font-bold">{slotsLeft > 0 ? "Drop images to add" : "This note already has 5 images"}</p>
+          <p className="text-[15px] font-bold">{slotsLeft > 0 ? "Drop images to add" : `This ${noun} already has ${MAX_IMAGES} images`}</p>
           {slotsLeft > 0 && <p className="text-xs">JPEG, PNG, WebP or GIF · up to {slotsLeft} more</p>}
         </div>
       )}
@@ -216,21 +221,23 @@ export function NoteEditor({
           maxLength={200}
           className="h-10 min-w-0 flex-1 bg-transparent text-[19px] font-bold outline-none placeholder:text-placeholder"
         />
-        <ToolbarButton
-          label={values.pinned ? "Unpin note" : "Pin note"}
-          pressed={values.pinned}
-          onClick={() => update("pinned", !values.pinned, true)}
-        >
-          <Pin className={`size-5 rotate-45 ${values.pinned ? "fill-primary text-brand-strong" : ""}`} aria-hidden="true" />
-        </ToolbarButton>
+        {!isPost && (
+          <ToolbarButton
+            label={values.pinned ? "Unpin note" : "Pin note"}
+            pressed={values.pinned}
+            onClick={() => update("pinned", !values.pinned, true)}
+          >
+            <Pin className={`size-5 rotate-45 ${values.pinned ? "fill-primary text-brand-strong" : ""}`} aria-hidden="true" />
+          </ToolbarButton>
+        )}
       </div>
 
       <textarea
         ref={contentRef}
         value={values.content}
         onChange={(event) => update("content", event.target.value)}
-        placeholder="Take a note…"
-        aria-label="Note text"
+        placeholder={isPost ? "Write your post…" : "Take a note…"}
+        aria-label={isPost ? "Post text" : "Note text"}
         maxLength={20000}
         rows={1}
         className="field-sizing-content block max-h-[50svh] min-h-10 w-full resize-none bg-transparent px-4.5 py-1 text-[15px] leading-[22px] outline-none placeholder:text-placeholder"
@@ -262,15 +269,19 @@ export function NoteEditor({
 
       {showFormat && <FormatBar onFormat={format} />}
 
-      <div className="flex items-center gap-0.5 px-2.5 pt-1 pb-2" role="toolbar" aria-label="Note tools">
+      <div className="flex items-center gap-0.5 px-2.5 pt-1 pb-2" role="toolbar" aria-label={isPost ? "Post tools" : "Note tools"}>
         <ToolbarButton label="Formatting options" pressed={showFormat} onClick={() => setShowFormat((open) => !open)}>
           <Baseline className="size-[18px]" aria-hidden="true" />
         </ToolbarButton>
         <ColorMenu value={values.color} onChange={(color) => update("color", color, true)} />
-        <ReminderMenu value={values.reminderAt} onChange={(iso) => update("reminderAt", iso, true)} />
-        <ToolbarButton label="Collaborator" onClick={onOpenCollaborators}>
-          <UserPlus className="size-[18px]" aria-hidden="true" />
-        </ToolbarButton>
+        {!isPost && (
+          <>
+            <ReminderMenu value={values.reminderAt} onChange={(iso) => update("reminderAt", iso, true)} />
+            <ToolbarButton label="Collaborator" onClick={onOpenCollaborators}>
+              <UserPlus className="size-[18px]" aria-hidden="true" />
+            </ToolbarButton>
+          </>
+        )}
         <ToolbarButton label="Add image" onClick={() => fileRef.current?.click()} disabled={images.length >= MAX_IMAGES}>
           <ImagePlus className="size-[18px]" aria-hidden="true" />
         </ToolbarButton>
@@ -283,9 +294,11 @@ export function NoteEditor({
             </DropdownMenuTrigger>
           </span>
           <DropdownMenuContent align="start" className="w-48 rounded-2xl border border-border p-2 ring-0">
-            <DropdownMenuItem onClick={() => setPickerOpen(true)} className="h-10 rounded-lg px-2 text-[15px]">
-              {values.labels.length ? "Change labels" : "Add label"}
-            </DropdownMenuItem>
+            {!isPost && (
+              <DropdownMenuItem onClick={() => setPickerOpen(true)} className="h-10 rounded-lg px-2 text-[15px]">
+                {values.labels.length ? "Change labels" : "Add label"}
+              </DropdownMenuItem>
+            )}
             {moreActions.map((action) => (
               <DropdownMenuItem
                 key={action.label}
@@ -315,14 +328,16 @@ export function NoteEditor({
           {closing ? "Saving…" : "Close"}
         </button>
       </div>
-      <LabelPicker
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        anchor={moreRef}
-        allLabels={labelSuggestions}
-        value={values.labels}
-        onChange={(labels) => update("labels", labels, true)}
-      />
+      {!isPost && (
+        <LabelPicker
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          anchor={moreRef}
+          allLabels={labelSuggestions}
+          value={values.labels}
+          onChange={(labels) => update("labels", labels, true)}
+        />
+      )}
     </div>
   );
 }

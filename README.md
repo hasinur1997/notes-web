@@ -1,18 +1,113 @@
 # notes-web
 
-Web client for **Notes**: private notes, public posts and an admin area. It talks only to the REST API in the sibling repo [`notes-api`](https://github.com/hasinur1997/notes-api), which owns all data, authentication and access rules.
+**Notes** is a note-taking web app with private notes, public posts and an admin area. This repository is the browser client: a Next.js app that talks only to the REST API in the sibling repo [`notes-api`](https://github.com/hasinur1997/notes-api). The API owns all data, authentication and access rules; this app shows the data and sends what the user wants to do.
 
-**Stack:** Next.js (App Router), React, Tailwind CSS and shadcn/ui (Base UI). No server-side data fetching, API routes or server actions: the browser holds the JWT and calls the API directly.
+**Stack:** Next.js (App Router), React, Tailwind CSS and shadcn/ui (Base UI). There is no server-side data fetching, no API routes and no server actions: the browser holds the JWT and calls the API directly.
+
+**At a glance**
+
+- Anyone can read the public posts feed, a single post and a person's profile, without an account.
+- Signed-in users keep private notes with a rich editor, share notes with other people, and publish public posts.
+- Admins manage accounts, read any user's notes, and see users grouped by interest.
+- Every list is paginated by the API. Pages switch smoothly, with a loading bar and cached data.
 
 ---
 
-## Features
+## Contents
 
-- **Public pages (no account needed):** the posts feed at `/` with a short description and "Read more" for each post, a full post at `/posts/[id]`, and a person's profile with their posts at `/users/[id]/posts`. Lists load more while you scroll.
-- **Accounts:** register, sign in, forgot / reset password, profile (name, interests, photo) and settings.
-- **Notes:** a Markdown editor with formatting, colours, labels, pinning, reminders, up to 5 images (with cropping) and sharing with collaborators. Search, label filters, and page numbers or infinite scroll.
-- **My posts:** write, edit and delete your public posts with the same editor (text, colour, images). Posts open in place.
-- **Admin:** manage users (create, edit, change role, delete, search), read any user's notes, and see users grouped by interest.
+- [Feature tour](#feature-tour)
+- [Requirements](#requirements)
+- [Development setup](#development-setup)
+- [Scripts](#scripts)
+- [Environment variables](#environment-variables)
+- [Project structure](#project-structure)
+- [How it works](#how-it-works)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Feature tour
+
+The screenshots below use demo data (sample people, notes and posts).
+
+### Public posts
+
+#### Posts feed
+
+The home page (`/`) is open to everyone. It lists every public post, newest first, as cards with a cover image, the title, a short description and the author. **Read more** opens the full post, and more posts load automatically as you scroll. Visitors see **Sign up** and **Log in** at the top right; signed-in users see **My notes** and their account menu instead.
+
+![Public posts feed](docs/screenshots/01-public-feed.png)
+
+#### Reading a post
+
+A post page (`/posts/[id]`) shows the whole post: its images, the title, the author and dates, and the formatted text (headings, lists, bold, italic and more). The author's name links to their profile.
+
+![A single post](docs/screenshots/02-post-detail.png)
+
+#### A person's profile and posts
+
+`/users/[id]/posts` shows a person's public profile (name, photo, interests, join date and post count) and all of their posts. The API returns the profile and the posts together from a single aggregation pipeline (`$lookup` from users into posts). Email addresses are never shown publicly.
+
+![A user's posts](docs/screenshots/03-user-posts.png)
+
+### Accounts
+
+Create an account with a name, email and password, then sign in. Mistakes appear right under the field that needs fixing (invalid email, short password, passwords that do not match) instead of browser popups, and submitting moves the cursor to the first problem. Forgotten passwords can be reset with an emailed link.
+
+![Registration with field errors](docs/screenshots/04-register-validation.png)
+
+### Notes
+
+#### Your notes
+
+After signing in you land on your notes. A note can have a title, formatted text, a colour, labels, a reminder, images and collaborators. Pinned notes stay on top. The sidebar shows how many notes you have, your reminders, your posts and every label with its count; choosing a label filters the list. The search box at the top matches every word you type, in any order, in the title or text. Notes shared with you by other people appear here too, with their avatars on the card.
+
+![Notes](docs/screenshots/05-notes.png)
+
+#### The note editor
+
+Click a note to edit it. The editor supports Markdown formatting from a toolbar (or keyboard shortcuts), colours, reminders, labels, collaborators, up to five images (added with the button, by drag and drop, or by pasting, and croppable), and undo / redo. Changes save when you close the editor. Notes are private: only the owner and the people they share a note with can see it.
+
+![Note editor](docs/screenshots/06-note-editor.png)
+
+### My posts
+
+**Posts** in the sidebar is where you write and manage your public posts. Posts use the same editor as notes (text, formatting, colour and images). Your posts open right here when you click **Read more**, and the pencil opens them for editing. **View my public page** shows your profile as everyone else sees it.
+
+![My posts](docs/screenshots/07-my-posts.png)
+
+### Profile and settings
+
+The profile page lets you change your name, add a photo (with cropping) and list your interests. Settings let you choose how long note lists behave: page numbers or infinite scroll, and 12, 24 or 48 notes per page. Settings are saved to your account, so they follow you to any device.
+
+| Profile | Settings |
+|---|---|
+| ![Profile](docs/screenshots/08-profile.png) | ![Settings](docs/screenshots/09-settings.png) |
+
+### Administration
+
+Admins see three extra menus in the sidebar. The interface only hides what a user cannot do; the API checks the role on every request.
+
+#### Users
+
+Every account in a paginated table with search by name or email. Admins can create users, edit their details or password, change roles from the list, and delete accounts (which also removes that person's notes and posts). Admins cannot delete or demote themselves, so there is always at least one admin.
+
+![Admin: users](docs/screenshots/10-admin-users.png)
+
+#### User's Notes
+
+Pick a person to read their notes exactly as they see them (their own notes and notes shared with them). This view is read-only.
+
+![Admin: a user's notes](docs/screenshots/11-admin-user-notes.png)
+
+#### Interests
+
+Users grouped by the interests on their profiles, largest group first, with a filter for a single interest. The API builds this with one aggregation pipeline (`$unwind` and `$group`, paginated with `$facet`), backed by the index on `interests`.
+
+![Admin: users grouped by interest](docs/screenshots/12-admin-interests.png)
+
+---
 
 ## Requirements
 
